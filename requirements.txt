@@ -1,0 +1,18 @@
+* 3d modeling
+* proper creepage and clearance calculations
+* designs using more than one pcb
+* designs using a pcb more than once
+* custom user libraries
+* libraries for parts
+* schematic and pcb capable
+* plain text formats for files
+
+* schematic symbols
+* component pcb footprint
+ - validation field to determine if the model has been built and verified
+ - requirements list
+* component 3d model
+ - validation field to determine if the model has been built and verified
+ - requirements list
+
+* import and export file formats of other programs
