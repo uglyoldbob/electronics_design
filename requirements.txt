@@ -16,3 +16,5 @@
  - requirements list
 
 * import and export file formats of other programs
+
+* ability to trace current loops in schematic and pcb layout
