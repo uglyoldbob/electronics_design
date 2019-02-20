@@ -1,7 +1,9 @@
 * 3d modeling
+ - ability to move components and boards in 3d view
 * proper creepage and clearance calculations
 * designs using more than one pcb
 * designs using a pcb more than once
+* multiple "configurations" of a design
 * custom user libraries
 * libraries for parts
 * schematic and pcb capable
