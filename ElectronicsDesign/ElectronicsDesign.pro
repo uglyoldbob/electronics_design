@@ -25,11 +25,19 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+        design.cpp \
+        harness.cpp \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+        pcb.cpp \
+        schematic.cpp
 
 HEADERS += \
-        mainwindow.h
+        design.h \
+        harness.h \
+        mainwindow.h \
+        pcb.h \
+        schematic.h
 
 FORMS += \
         mainwindow.ui
