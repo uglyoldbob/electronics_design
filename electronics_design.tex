@@ -1,0 +1,107 @@
+\documentclass[letterpaper,12pt,twoside]{book}
+
+% Uncomment the following line to allow the usage of graphics (.png, .jpg)
+%\usepackage[pdftex]{graphicx}
+% Comment the following line to NOT allow the usage of umlauts
+\usepackage[utf8]{inputenc}
+\usepackage {tabu}
+\usepackage{filecontents}
+\usepackage[table]{xcolor}
+\usepackage {longtable}
+\usepackage{fancyhdr}
+\usepackage{arydshln}
+\usepackage{tikz-timing}[2009/05/15]
+\usepackage{tikz}
+
+% define lightgray
+\definecolor{lightgray}{gray}{0.9}
+
+% alternate rowcolors for all tables
+\let\oldtabular\tabular
+\let\endoldtabular\endtabular
+\renewenvironment{tabular}{\rowcolors{2}{white}{lightgray}\oldtabular}{\endoldtabular}
+
+% alternate rowcolors for all long-tables
+\let\oldlongtable\longtable
+\let\endoldlongtable\endlongtable
+\renewenvironment{longtable}{\rowcolors{2}{white}{lightgray}\oldlongtable} {
+\endoldlongtable}
+
+\usepackage{geometry}
+\geometry{textwidth=7.5in}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[CE,CO]{\leftmark}
+\fancyfoot[RE,RO]{Page \thepage}
+\renewcommand{\headrulewidth}{2pt}
+\renewcommand{\footrulewidth}{1pt}
+
+% Start the document
+\begin{document}
+\title{Electronics Design Software}
+\author{Thomas Epperson}
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+% Create a new 1st level heading
+
+\chapter {Design Elements}
+\section {Schematics}
+\subsection {Schematic Components}
+\section {Printed circuit boards}
+\subsection {PCB Components}
+\subsection {3d model}
+\section {Wiring harnesses}
+\section {Bill of materials}
+The bill of materials is a combination of all parts in the design.
+
+\section {Parts}
+Designs contain one or more parts. Parts consist of a variety of layers which are spread out among the various areas of the design. Most features of a part are optional.
+
+\subsection {Reference Designator}
+This is the name used to identify the part across the various places it appears.
+
+\subsection {Schematic symbol}
+The schematic symbol defines how the symbol is to be drawn on a schematic page.
+
+\subsection {Bill of material information}
+Bill of material information consists of some part number information.
+\begin{itemize}
+\item Manufacturer
+\item Manufacturer Part Number
+\item (One or more) Manufacturer Price and quantity
+\end{itemize}
+
+\subsection {PCB footprint}
+The pcb footprint can consist of multiple types of data, broken up into multiple optional layers.
+\begin{itemize}
+\item Component side silkscreen
+\item Component side copper
+\item Opposite side silkscreen
+\item Opposite side copper
+\item Inner layer copper
+\item Component side assembly
+\item 3d model
+\item Board shape
+
+The pcb footprint may specify extra information for the board shape such as cutouts or specific board shapes.
+\end{itemize}
+
+\section {Usage}
+\subsection {New design}
+New designs start with schematic design. Initial stages of schematic design may have some items of the design not established such as footprint, value, etc.
+
+\subsection {Transfer design}
+Transfer designs are imported from other file formats.
+
+\subsection {Reverse engineering}
+Reverse engineered designs start with a pcb layout of some variety where the symbols are likely to be unknown initially and specified later on.
+
+\subsection {Output 3d model files}
+3d model files are useful when it is desired to use external software for 3d modeling.
+
+\subsection {Output PCB manufacturing files}
+PCB manufacturing capabilities and methods vary widely. Assembly methods and capabilities also vary widely. Both of these affect design aspects significantly. Some or all pcb layers are used when generating output files for manufacturing.
+\end{document}
