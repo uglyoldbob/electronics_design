@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui qml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -27,22 +27,27 @@ CONFIG += c++11
 SOURCES += \
         design.cpp \
         harness.cpp \
+        library.cpp \
         main.cpp \
-        mainwindow.cpp \
         pcb.cpp \
         schematic.cpp
 
 HEADERS += \
         design.h \
         harness.h \
-        mainwindow.h \
+        library.h \
         pcb.h \
         schematic.h
 
-FORMS += \
-        mainwindow.ui
+FORMS +=
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES += \
+    main.qml
+
+RESOURCES += \
+    resources.qrc

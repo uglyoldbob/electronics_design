@@ -1,3 +1,6 @@
+#ifndef PCB_H_
+#define PCB_H_
+
 class pcb
 {
     public:
@@ -5,3 +8,5 @@ class pcb
     private:
         int bob;
 };
+
+#endif

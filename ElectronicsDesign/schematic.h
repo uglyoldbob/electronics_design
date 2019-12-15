@@ -1,3 +1,6 @@
+#ifndef SCHEMATIC_H_
+#define SCHEMATIC_H_
+
 class schematic
 {
     public:
@@ -5,3 +8,5 @@ class schematic
     private:
         int bob;
 };
+
+#endif

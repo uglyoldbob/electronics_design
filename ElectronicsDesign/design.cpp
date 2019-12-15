@@ -2,11 +2,14 @@
 
 #include <QFile>
 #include <QTextStream>
+#include <QQmlEngine>
 
 design::design()
 {
     saved_to_disk = 0;
-    emit hasUnsavedChanges(true);
+    unsaved_changes = 0;
+    emit blab_changed();
+    emit unsaved_changed();
 }
 
 design::~design()
@@ -14,10 +17,25 @@ design::~design()
 
 }
 
+void design::tweak_blabbing()
+{
+ blabbing = (blabbing?0:1);
+ emit blab_changed();
+}
+
+void design::qml_register()
+{
+    qmlRegisterType<design>("uglyoldbob", 1, 0, "Design");
+}
+
+void design::newDesign()
+{
+
+}
+
 void design::loadFromFile(QString filename)
 {
     saveCopyAs(filename);
-    emit hasUnsavedChanges(false);
     saved_to_disk = 1;
 }
 

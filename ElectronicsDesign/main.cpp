@@ -1,11 +1,19 @@
-#include "mainwindow.h"
 #include <QApplication>
+#include <QQmlApplicationEngine>
+
+#include "design.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
+
+    design::qml_register();
+
+    QQmlApplicationEngine engine;
+    engine.load(QUrl("qrc:/main.qml"));
+
+
+
 
     return a.exec();
 }

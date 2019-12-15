@@ -1,3 +1,6 @@
+#ifndef HARNESS_H_
+#define HARNESS_H_
+
 class harness
 {
     public:
@@ -5,3 +8,5 @@ class harness
     private:
         int bob;
 };
+
+#endif
