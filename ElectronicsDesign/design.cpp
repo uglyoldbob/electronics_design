@@ -8,8 +8,9 @@ design::design()
 {
     saved_to_disk = 0;
     unsaved_changes = 0;
-    emit blab_changed();
+    title = "Untitled";
     emit unsaved_changed();
+    emit title_changed();
 }
 
 design::~design()
@@ -17,15 +18,25 @@ design::~design()
 
 }
 
-void design::tweak_blabbing()
-{
- blabbing = (blabbing?0:1);
- emit blab_changed();
-}
-
 void design::qml_register()
 {
     qmlRegisterType<design>("uglyoldbob", 1, 0, "Design");
+}
+
+qint8 design::has_unsaved_changes() const
+{
+    return unsaved_changes;
+}
+
+void design::set_title(QString val)
+{
+    title = val;
+    emit title_changed();
+}
+
+QString design::get_title() const
+{
+    return title;
 }
 
 void design::newDesign()

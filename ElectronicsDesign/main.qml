@@ -6,7 +6,7 @@ import uglyoldbob 1.0
 ApplicationWindow {
     visible: true
     id: window
-    title: ((currentDesign.blab !== 0) ? "blabbing " : "non-blabbing ") + "sandwhich"
+    title: ((currentDesign.unsaved !== 0) ? "" : "Unsaved ") + "Design: " + currentDesign.title
     Design {
         id: currentDesign
     }
@@ -14,7 +14,7 @@ ApplicationWindow {
     Button {
             text: "Ok"
             onClicked: {
-                currentDesign.tweak_blabbing()
+
             }
         }
 

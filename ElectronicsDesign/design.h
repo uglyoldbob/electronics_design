@@ -7,14 +7,15 @@
 class design : public QObject
 {
 Q_OBJECT
-Q_PROPERTY(quint8 blab READ read_blab NOTIFY blab_changed)
 
 public:
-    Q_PROPERTY(qint8 unsaved READ has_unsaved_changes() NOTIFY unsaved_changed)
+    Q_PROPERTY(qint8 unsaved READ has_unsaved_changes NOTIFY unsaved_changed)
+    Q_PROPERTY(QString title READ get_title WRITE set_title NOTIFY title_changed)
     explicit design();
     virtual ~design();
-    qint8 has_unsaved_changes() const { return unsaved_changes; }
-    quint8 read_blab() const { return blabbing; }
+    qint8 has_unsaved_changes() const;
+    void set_title(QString val);
+    QString get_title() const;
 
     void newDesign();
     int closeDesign();
@@ -26,17 +27,16 @@ public:
     static void qml_register();
 
 public slots:
-    void tweak_blabbing();
+
 signals:
     void unsaved_changed();
-    void blab_changed();
+    void title_changed();
 
 private:
     QString filename;
-    QString blab;
+    QString title;  //the title of the current design
     qint8 unsaved_changes;
     int saved_to_disk;
-    quint8 blabbing;
 };
 
 #endif
