@@ -6,15 +6,16 @@ import uglyoldbob 1.0
 ApplicationWindow {
     visible: true
     id: window
-    title: ((currentDesign.unsaved !== 0) ? "" : "Unsaved ") + "Design: " + currentDesign.title
-    Design {
-        id: currentDesign
+    title: ((DesignSingleton.unsaved !== 0) ? "" : "Unsaved ") + "Design: " + DesignSingleton.title
+
+    LibraryEditor {
+        id: lib_edit
     }
 
     Button {
             text: "Ok"
             onClicked: {
-
+                lib_edit.open();
             }
         }
 

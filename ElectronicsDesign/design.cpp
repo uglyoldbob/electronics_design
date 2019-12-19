@@ -20,7 +20,12 @@ design::~design()
 
 void design::qml_register()
 {
-    qmlRegisterType<design>("uglyoldbob", 1, 0, "Design");
+    qmlRegisterSingletonType<design>("uglyoldbob", 1, 0, "DesignSingleton", [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
+        Q_UNUSED(engine)
+        Q_UNUSED(scriptEngine)
+        design *nd = new design();
+        return nd;
+    });
 }
 
 qint8 design::has_unsaved_changes() const
