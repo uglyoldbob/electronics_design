@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui qml
+QT       += core gui qml quick
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -26,6 +26,7 @@ CONFIG += c++11
 
 SOURCES += \
         design.cpp \
+        footprintdraw.cpp \
         harness.cpp \
         library.cpp \
         main.cpp \
@@ -34,6 +35,7 @@ SOURCES += \
 
 HEADERS += \
         design.h \
+        footprintdraw.h \
         harness.h \
         library.h \
         pcb.h \
