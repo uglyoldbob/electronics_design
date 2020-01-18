@@ -1,0 +1,59 @@
+\documentclass[letterpaper,12pt,twoside]{book}
+
+% Uncomment the following line to allow the usage of graphics (.png, .jpg)
+%\usepackage[pdftex]{graphicx}
+% Comment the following line to NOT allow the usage of umlauts
+\usepackage[utf8]{inputenc}
+\usepackage {tabu}
+\usepackage{filecontents}
+\usepackage[table]{xcolor}
+\usepackage {longtable}
+\usepackage{fancyhdr}
+\usepackage{arydshln}
+\usepackage{tikz-timing}[2009/05/15]
+
+% define lightgray
+\definecolor{lightgray}{gray}{0.9}
+
+% alternate rowcolors for all tables
+\let\oldtabular\tabular
+\let\endoldtabular\endtabular
+\renewenvironment{tabular}{\rowcolors{2}{white}{lightgray}\oldtabular}{\endoldtabular}
+
+% alternate rowcolors for all long-tables
+\let\oldlongtable\longtable
+\let\endoldlongtable\endlongtable
+\renewenvironment{longtable}{\rowcolors{2}{white}{lightgray}\oldlongtable} {
+\endoldlongtable}
+
+\usepackage{geometry}
+\geometry{textwidth=7.5in}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[CE,CO]{\leftmark}
+\fancyfoot[RE,RO]{Electronics Design [Technical Manual]\thepage}
+\renewcommand{\headrulewidth}{2pt}
+\renewcommand{\footrulewidth}{1pt}
+
+% Start the document
+\begin{document}
+\title{Electronics Design Technical Manual}
+\author{Thomas Epperson}
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+
+\chapter {Introduction}
+This manual describes the technical details useful for developers. It is a superset of the user manual.
+
+\chapter {Use cases}
+
+\chapter {Libraries}
+Libraries contain content uses as the building blocks of a design. Libraries are stored in a variety of ways, and the ways to access those libraries depend on how they are stored.
+
+
+
+
+\end{document}
