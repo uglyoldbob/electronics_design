@@ -31,7 +31,8 @@ SOURCES += \
         library.cpp \
         main.cpp \
         pcb.cpp \
-        schematic.cpp
+        schematic.cpp \
+        schematicsymbol.cpp
 
 HEADERS += \
         design.h \
@@ -39,7 +40,8 @@ HEADERS += \
         harness.h \
         library.h \
         pcb.h \
-        schematic.h
+        schematic.h \
+        schematicsymbol.h
 
 FORMS +=
 

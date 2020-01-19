@@ -8,6 +8,7 @@ Dialog {
         text: "yay a thing"
     }
     FootprintDraw {
-        width: 100; height: 100
+        width: parent.width
+        height: parent.height
     }
 }

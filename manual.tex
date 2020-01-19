@@ -48,22 +48,10 @@
 \chapter {Use cases}
 
 \chapter {Libraries}
-Libraries contain content uses as the building blocks of a design. Libraries are stored in a variety of ways, and the ways to access those libraries depend on how they are stored.
+Libraries contain content uses as the building blocks of a design. Libraries are stored in a variety of ways, and the ways to access those libraries depend on how they are stored. Creator ids are registered and two different entities should not have the same identifier. The id of the library is specific to the producer. Two different libraries should not have the same identifier. As long as a change to a library is still compatible with previous versions, only a change in the minor version is required. Libraries are assumed to be forward compatible as long as the creator, id, and major version are the same.
 
 \section {Local File}
 A library can be contained in a local file. A local file may be network accessible by means of some standard file mapping technology. Probably not the best option to use for a network accessible library.
-
-\subsection {Format}
-The format of a library saved to a plain file is a follows. The file extension is to be determined.
-\begin {center}
-\begin {tabular} { |c|c|c|  }
-\hline
- a & b & c \\
- d & e & f \\
- g & h & i \\
-\hline
-\end {tabular}
-\end {center}
 
 
 \end{document}

@@ -32,7 +32,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyfoot[CE,CO]{\leftmark}
-\fancyfoot[RE,RO]{Electronics Design [Technical Manual]\thepage}
+\fancyfoot[RE,RO]{[Technical Manual]\thepage}
 \renewcommand{\headrulewidth}{2pt}
 \renewcommand{\footrulewidth}{1pt}
 
@@ -51,9 +51,68 @@ This manual describes the technical details useful for developers. It is a super
 \chapter {Use cases}
 
 \chapter {Libraries}
-Libraries contain content uses as the building blocks of a design. Libraries are stored in a variety of ways, and the ways to access those libraries depend on how they are stored.
+Libraries contain content uses as the building blocks of a design. Libraries are stored in a variety of ways, and the ways to access those libraries depend on how they are stored. Creator ids are registered and two different entities should not have the same identifier. The id of the library is specific to the producer. Two different libraries should not have the same identifier. As long as a change to a library is still compatible with previous versions, only a change in the minor version is required. Libraries are assumed to be forward compatible as long as the creator, id, and major version are the same.
+
+\section {Local File}
+A library can be contained in a local file. A local file may be network accessible by means of some standard file mapping technology. Probably not the best option to use for a network accessible library.
+
+\subsection {Format}
+The format of a library saved to a plain file is a follows. The file extension is to be determined. 
+\begin {center}
+\begin {tabular} { |c|c|c|  }
+\hline
+ Creator & 64 bit unsigned & Identifier for producer of the library. \\
+ Id & 64 bit unsigned & Identifies the specific library from the producer \\
+ Major Version & 16 bit unsigned & The major version of the library \\
+ Minor Version & 16 bit unsigned & The minor version of the library \\
+\hline
+\end {tabular}
+\end {center}
+
+\subsection {Element types}
+There are many types of elements specified by a library. 3d model references depend on the library type. Local file libraries use a path relative to the location where the file is saved.
+\begin {center}
+\begin {tabular} { |c|c|c|  }
+\hline
+Type & ID & Description\\
+Schematic Symbol & 0 & Symbol printed on a schematic \\
+PCB Data & 1 & Information required for population on a pcb design \\
+PCB 3d model reference & 2 & Reference to 3d model data used to render a 3d model onto a pcb \\
+PCB 3d Model data & 3 & Actual 3d model data used to render a 3d model onto a pcb \\
+\hline
+\end {tabular}
+\end {center}
+
+\section {Schematic element}
+This is a major element of a schematic.
+
+Points are defined by the schematic element. These points are referenced where required. Text elements are defined by the schematic element and referenced as required. There are specific reserved text elements whose contents are defined externally. 
+
+\begin {center}
+\begin {tabular} { |c|c|c|  }
+\hline
+ Name & Index & Usage \\
+ Designator & 0 & The designator for the component such as R1 or Q17 \\
+ Part Number & 1 & Specified (if any) part numbers for the component \\
+ Value & 2 & Any applicable value for the component such as 15 ohms, or 10uF \\ 
+\hline
+\end {tabular}
+\end {center}
 
 
+\begin {center}
+\begin {tabular} { |c|c|c|  }
+\hline
+ Lines & & \\
+ Arcs & & \\
+ Ovals & & \\
+ Polygons & & \\
+ Polylines & & \\
+ Rectangles & & \\
+ Rounded Rectangles & & \\ 
+\hline
+\end {tabular}
+\end {center}
 
 
 \end{document}
