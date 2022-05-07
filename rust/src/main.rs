@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+mod schematic;
+
 use eframe::egui;
 
 fn main() {
@@ -16,6 +18,18 @@ struct MyApp {
     age: u32,
 }
 
+impl MyApp {
+    fn run_menu(&mut self, ui: &mut eframe::egui::Ui) {
+        ui.menu_button("File", |ui| {
+            ui.menu_button("Recent", |ui| {
+                if ui.button("Thing 1").clicked() {
+                    ui.close_menu();
+                }
+            });
+        });
+    }
+}
+
 impl Default for MyApp {
     fn default() -> Self {
         Self {
@@ -28,6 +42,7 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            self.run_menu(ui);
             ui.heading("My egui Application");
             ui.horizontal(|ui| {
                 ui.label("Your name: ");

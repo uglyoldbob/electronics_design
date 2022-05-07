@@ -9,3 +9,7 @@ publish = false
 
 [dependencies]
 eframe = "0.18.0"
+
+[[bin]]
+name = "ElectronicsDesign"
+path = "src/main.rs"
