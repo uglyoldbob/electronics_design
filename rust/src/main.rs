@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 mod schematic;
+use crate::schematic::Schematic;
 
 use eframe::egui;
 
@@ -43,7 +44,7 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.run_menu(ui);
-            ui.heading("My egui Application");
+            ui.heading("Electronics Design");
             ui.horizontal(|ui| {
                 ui.label("Your name: ");
                 ui.text_edit_singleline(&mut self.name);
@@ -53,6 +54,14 @@ impl eframe::App for MyApp {
                 self.age += 1;
             }
             ui.label(format!("Hello '{}', age {}", self.name, self.age));
+            let sch = Schematic::new();
+            ui.label("ABOVE");
+            ui.horizontal(|ui| {
+                ui.label("LEFT");
+                ui.add(sch);
+                ui.label("RIGHT");
+            });
+            ui.label("BELOW");
         });
     }
 }
