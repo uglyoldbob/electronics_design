@@ -1,0 +1,11 @@
+[package]
+name = "electronics_design"
+version = "0.1.0"
+authors = ["Thomas Epperson <thomas.epperson@gmail.com>"]
+license = "Closed"
+edition = "2021"
+rust-version = "1.60"
+publish = false
+
+[dependencies]
+eframe = "0.18.0"
