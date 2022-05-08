@@ -2,6 +2,7 @@
 
 mod schematic;
 use crate::schematic::Schematic;
+use crate::schematic::SchematicWidget;
 
 use eframe::egui;
 
@@ -17,6 +18,7 @@ fn main() {
 struct MyApp {
     name: String,
     age: u32,
+    schematic: Schematic,
 }
 
 impl MyApp {
@@ -36,6 +38,7 @@ impl Default for MyApp {
         Self {
             name: "Arthur".to_owned(),
             age: 42,
+            schematic: Schematic::new(),
         }
     }
 }
@@ -54,7 +57,7 @@ impl eframe::App for MyApp {
                 self.age += 1;
             }
             ui.label(format!("Hello '{}', age {}", self.name, self.age));
-            let sch = Schematic::new();
+            let sch = SchematicWidget::new(&mut self.schematic);
             ui.label("ABOVE");
             ui.horizontal_top(|ui| {
                 ui.label("LEFT");
