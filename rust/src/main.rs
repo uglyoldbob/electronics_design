@@ -56,7 +56,7 @@ impl eframe::App for MyApp {
             ui.label(format!("Hello '{}', age {}", self.name, self.age));
             let sch = Schematic::new();
             ui.label("ABOVE");
-            ui.horizontal(|ui| {
+            ui.horizontal_top(|ui| {
                 ui.label("LEFT");
                 ui.add(sch);
                 ui.label("RIGHT");

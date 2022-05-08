@@ -23,7 +23,7 @@ impl eframe::egui::Widget for Schematic {
             focusable: true,
         };
         let (area, response) = ui.allocate_at_least(size, sense);
-        let pntr = ui.painter();
+        let pntr = ui.painter().with_clip_rect(area);
         let pos = eframe::egui::Pos2 { x: 0.0, y: 0.0 };
         let align = eframe::egui::Align2::LEFT_TOP;
         let font = eframe::egui::FontId {

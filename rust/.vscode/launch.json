@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'ElectronicsDesign'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=ElectronicsDesign",
+                    "--package=electronics_design"
+                ],
+                "filter": {
+                    "name": "ElectronicsDesign",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'ElectronicsDesign'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=ElectronicsDesign",
+                    "--package=electronics_design"
+                ],
+                "filter": {
+                    "name": "ElectronicsDesign",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
