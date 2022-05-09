@@ -1,8 +1,14 @@
 pub struct Symbol {}
 
+pub struct TextOnPage {
+    text: String,
+    x: f32,
+    y: f32,
+}
+
 pub struct Page {
     syms: Vec<Symbol>,
-    texts: Vec<String>,
+    texts: Vec<TextOnPage>,
 }
 
 pub struct Schematic {
@@ -18,7 +24,11 @@ impl Schematic {
     pub fn new() -> Self {
         let mut p = Vec::new();
         let mut t = Vec::new();
-        t.push("demo text".to_string());
+        t.push(TextOnPage {
+            text: "demo text".to_string(),
+            x: 0.0,
+            y: 0.0,
+        });
         let page = Page {
             syms: Vec::new(),
             texts: t,
@@ -47,19 +57,13 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
         let cur_page = &self.sch.pages[self.page];
         let color = eframe::egui::Color32::RED;
         for t in &cur_page.texts {
-            let pos = eframe::egui::Pos2 { x: 0.0, y: 0.0 };
+            let pos = eframe::egui::Pos2 { x: t.x, y: t.y };
             let align = eframe::egui::Align2::LEFT_TOP;
             let font = eframe::egui::FontId {
                 size: 24.0,
                 family: eframe::egui::FontFamily::Monospace,
             };
-            pntr.text(
-                area.left_top(),
-                align,
-                t,
-                font,
-                color,
-            );
+            pntr.text(area.left_top(), align, t.text.clone(), font, color);
         }
         pntr.rect_stroke(
             area,
