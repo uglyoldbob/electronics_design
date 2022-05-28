@@ -15,9 +15,16 @@ pub struct Schematic {
     pages: Vec<Page>,
 }
 
+/// Defines the mode for mouse interaction
+pub enum MouseMode {
+    Selection,
+    TextDrag,
+}
+
 pub struct SchematicWidget<'a> {
     sch: &'a mut Schematic,
     page: usize,
+    mm: MouseMode,
 }
 
 impl Schematic {
@@ -45,13 +52,12 @@ impl Schematic {
 
 impl<'a> SchematicWidget<'a> {
     pub fn new(sch: &'a mut Schematic) -> Self {
-        Self { sch: sch, page: 0 }
+        Self { sch: sch, page: 0, mm: MouseMode::Selection }
     }
 }
 
 impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let size = eframe::egui::vec2(500.0, 500.0);
         let sense = eframe::egui::Sense {
             click: true,
             drag: true,
@@ -59,7 +65,9 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
         };
         let context = ui.ctx();
         let available_width = ui.available_width();
-        let area = ui.cursor();
+        let mut area = ui.cursor();
+        area.max.x = available_width + area.min.x;
+        let size = eframe::egui::vec2(area.max.x - area.min.x, area.max.y - area.min.y);
 
         let pntr = ui.painter().with_clip_rect(area);
         let cur_page = &mut self.sch.pages[self.page];
@@ -83,14 +91,24 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
                     focusable: true,
                 },
             );
-            if response.clicked() {
-                println!("Clicked");
+            match self.mm {
+                MouseMode::Selection => {
+                    if response.clicked() {
+                        println!("Clicked");
+                    }
+                }
+                MouseMode::TextDrag => {
+                    if response.clicked() {
+                        println!("Clicked");
+                    }
+                    if response.dragged() {
+                        let amount = response.drag_delta();
+                        t.x += amount.x;
+                        t.y += amount.y;
+                    }
+                }
             }
-            if response.dragged() {
-                let amount = response.drag_delta();
-                t.x += amount.x;
-                t.y += amount.y;
-            }
+            
         }
         pntr.rect_stroke(
             area,
