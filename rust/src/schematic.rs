@@ -16,7 +16,7 @@ pub struct Schematic {
 }
 
 pub struct SchematicWidget<'a> {
-    sch: &'a Schematic,
+    sch: &'a mut Schematic,
     page: usize,
 }
 
@@ -29,6 +29,11 @@ impl Schematic {
             x: 0.0,
             y: 0.0,
         });
+        t.push(TextOnPage {
+            text: "moredemo text".to_string(),
+            x: 50.0,
+            y: 50.0,
+        });
         let page = Page {
             syms: Vec::new(),
             texts: t,
@@ -39,31 +44,53 @@ impl Schematic {
 }
 
 impl<'a> SchematicWidget<'a> {
-    pub fn new(sch: &'a Schematic) -> Self {
+    pub fn new(sch: &'a mut Schematic) -> Self {
         Self { sch: sch, page: 0 }
     }
 }
 
 impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
     fn ui(self, ui: &mut eframe::egui::Ui) -> eframe::egui::Response {
-        let size = eframe::egui::vec2(100.0, 100.0);
+        let size = eframe::egui::vec2(500.0, 500.0);
         let sense = eframe::egui::Sense {
             click: true,
             drag: true,
             focusable: true,
         };
-        let (area, response) = ui.allocate_at_least(size, sense);
+        let context = ui.ctx();
+        let available_width = ui.available_width();
+        let area = ui.cursor();
+
         let pntr = ui.painter().with_clip_rect(area);
-        let cur_page = &self.sch.pages[self.page];
+        let cur_page = &mut self.sch.pages[self.page];
         let color = eframe::egui::Color32::RED;
-        for t in &cur_page.texts {
-            let pos = eframe::egui::Pos2 { x: t.x, y: t.y };
+
+        for (i, t) in cur_page.texts.iter_mut().enumerate() {
+            let pos = eframe::egui::Vec2 { x: t.x, y: t.y };
             let align = eframe::egui::Align2::LEFT_TOP;
             let font = eframe::egui::FontId {
                 size: 24.0,
                 family: eframe::egui::FontFamily::Monospace,
             };
-            pntr.text(area.left_top(), align, t.text.clone(), font, color);
+            let temp = area.left_top() + pos;
+            let mut r = pntr.text(temp, align, t.text.clone(), font, color);
+            let response = ui.interact(
+                r,
+                eframe::egui::Id::new(42424242 + i),
+                eframe::egui::Sense {
+                    click: true,
+                    drag: true,
+                    focusable: true,
+                },
+            );
+            if response.clicked() {
+                println!("Clicked");
+            }
+            if response.dragged() {
+                let amount = response.drag_delta();
+                t.x += amount.x;
+                t.y += amount.y;
+            }
         }
         pntr.rect_stroke(
             area,
@@ -76,6 +103,14 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
             eframe::egui::Stroke {
                 width: 5.0,
                 color: color,
+            },
+        );
+        let (area, response) = ui.allocate_exact_size(
+            size,
+            eframe::egui::Sense {
+                click: true,
+                drag: true,
+                focusable: true,
             },
         );
         response

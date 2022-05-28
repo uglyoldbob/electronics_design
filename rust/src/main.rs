@@ -7,7 +7,7 @@ use crate::schematic::SchematicWidget;
 use eframe::egui;
 
 fn main() {
-    let options = eframe::NativeOptions::default();
+    let mut options = eframe::NativeOptions::default();
     eframe::run_native(
         "My egui App",
         options,
