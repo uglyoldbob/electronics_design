@@ -45,26 +45,21 @@ impl Default for MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::TopBottomPanel::top("menubar").show(ctx, |ui| {
             self.run_menu(ui);
-            ui.heading("Electronics Design");
-            ui.horizontal(|ui| {
-                ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name);
-            });
-            ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
-            if ui.button("Click each year").clicked() {
-                self.age += 1;
-            }
-            ui.label(format!("Hello '{}', age {}", self.name, self.age));
+        });
+
+        egui::SidePanel::left("left panel").resizable(true).show(ctx, |ui| {
+            ui.label("Left");
+        });
+
+        egui::SidePanel::right("right panel").resizable(true).show(ctx, |ui| {
+            ui.label("Right");
+        });
+
+        egui::CentralPanel::default().show(ctx, |ui| {
             let sch = SchematicWidget::new(&mut self.schematic);
-            ui.label("ABOVE");
-            ui.horizontal_top(|ui| {
-                ui.label("LEFT");
-                ui.add(sch);
-                ui.label("RIGHT");
-            });
-            ui.label("BELOW");
+            ui.add(sch);
         });
     }
 }

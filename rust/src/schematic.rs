@@ -1,4 +1,6 @@
-pub struct Symbol {}
+pub struct Symbol {
+    texts: Vec<TextOnPage>,
+}
 
 pub struct TextOnPage {
     text: String,
@@ -52,7 +54,11 @@ impl Schematic {
 
 impl<'a> SchematicWidget<'a> {
     pub fn new(sch: &'a mut Schematic) -> Self {
-        Self { sch: sch, page: 0, mm: MouseMode::Selection }
+        Self {
+            sch: sch,
+            page: 0,
+            mm: MouseMode::Selection,
+        }
     }
 }
 
@@ -64,9 +70,9 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
             focusable: true,
         };
         let context = ui.ctx();
-        let available_width = ui.available_width();
         let mut area = ui.cursor();
-        area.max.x = available_width + area.min.x;
+        area.max.x = ui.available_width() + area.min.x;
+        area.max.y = ui.available_height() + area.min.y;
         let size = eframe::egui::vec2(area.max.x - area.min.x, area.max.y - area.min.y);
 
         let pntr = ui.painter().with_clip_rect(area);
@@ -108,8 +114,46 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
                     }
                 }
             }
-            
         }
+        for mut sch in &mut cur_page.syms {
+            for (i, t) in sch.texts.iter_mut().enumerate() {
+                let pos = eframe::egui::Vec2 { x: t.x, y: t.y };
+                let align = eframe::egui::Align2::LEFT_TOP;
+                let font = eframe::egui::FontId {
+                    size: 24.0,
+                    family: eframe::egui::FontFamily::Monospace,
+                };
+                let temp = area.left_top() + pos;
+                let mut r = pntr.text(temp, align, t.text.clone(), font, color);
+                let response = ui.interact(
+                    r,
+                    eframe::egui::Id::new(42424242 + i),
+                    eframe::egui::Sense {
+                        click: true,
+                        drag: true,
+                        focusable: true,
+                    },
+                );
+                match self.mm {
+                    MouseMode::Selection => {
+                        if response.clicked() {
+                            println!("Clicked");
+                        }
+                    }
+                    MouseMode::TextDrag => {
+                        if response.clicked() {
+                            println!("Clicked");
+                        }
+                        if response.dragged() {
+                            let amount = response.drag_delta();
+                            t.x += amount.x;
+                            t.y += amount.y;
+                        }
+                    }
+                }
+            }
+        }
+
         pntr.rect_stroke(
             area,
             eframe::egui::Rounding {
