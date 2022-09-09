@@ -5,6 +5,7 @@ use crate::schematic::Schematic;
 use crate::schematic::SchematicWidget;
 
 use eframe::egui;
+use schematic::MouseMode;
 
 fn main() {
     let mut options = eframe::NativeOptions::default();
@@ -49,13 +50,24 @@ impl eframe::App for MyApp {
             self.run_menu(ui);
         });
 
-        egui::SidePanel::left("left panel").resizable(true).show(ctx, |ui| {
-            ui.label("Left");
+        egui::TopBottomPanel::top("button bar").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.selectable_value(&mut self.schematic.mm, MouseMode::Selection, "S");
+                ui.selectable_value(&mut self.schematic.mm, MouseMode::TextDrag, "T");
+            });
         });
 
-        egui::SidePanel::right("right panel").resizable(true).show(ctx, |ui| {
-            ui.label("Right");
-        });
+        egui::SidePanel::left("left panel")
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.label("Left");
+            });
+
+        egui::SidePanel::right("right panel")
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.label("Right");
+            });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let sch = SchematicWidget::new(&mut self.schematic);

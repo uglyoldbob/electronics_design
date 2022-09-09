@@ -15,9 +15,11 @@ pub struct Page {
 
 pub struct Schematic {
     pages: Vec<Page>,
+    pub mm: MouseMode,
 }
 
 /// Defines the mode for mouse interaction
+#[derive(PartialEq)]
 pub enum MouseMode {
     Selection,
     TextDrag,
@@ -26,7 +28,6 @@ pub enum MouseMode {
 pub struct SchematicWidget<'a> {
     sch: &'a mut Schematic,
     page: usize,
-    mm: MouseMode,
 }
 
 impl Schematic {
@@ -48,17 +49,16 @@ impl Schematic {
             texts: t,
         };
         p.push(page);
-        Self { pages: p }
+        Self {
+            pages: p,
+            mm: MouseMode::Selection,
+        }
     }
 }
 
 impl<'a> SchematicWidget<'a> {
     pub fn new(sch: &'a mut Schematic) -> Self {
-        Self {
-            sch: sch,
-            page: 0,
-            mm: MouseMode::Selection,
-        }
+        Self { sch: sch, page: 0 }
     }
 }
 
@@ -97,7 +97,7 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
                     focusable: true,
                 },
             );
-            match self.mm {
+            match self.sch.mm {
                 MouseMode::Selection => {
                     if response.clicked() {
                         println!("Clicked");
@@ -134,7 +134,7 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
                         focusable: true,
                     },
                 );
-                match self.mm {
+                match self.sch.mm {
                     MouseMode::Selection => {
                         if response.clicked() {
                             println!("Clicked");
