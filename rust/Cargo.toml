@@ -8,7 +8,11 @@ rust-version = "1.60"
 publish = false
 
 [dependencies]
-eframe = "0.18.0"
+bincode = "1.3.3"
+eframe = "0.22.0"
+futures = "0.3.28"
+rfd = "0.11.4"
+serde = {version = "1.0.164", features = ["derive"]}
 toml_edit = "0.14.3"
 
 [[bin]]

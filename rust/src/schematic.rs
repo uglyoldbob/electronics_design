@@ -1,25 +1,31 @@
+use std::io::Write;
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Symbol {
     texts: Vec<TextOnPage>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct TextOnPage {
     text: String,
     x: f32,
     y: f32,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Page {
     syms: Vec<Symbol>,
     texts: Vec<TextOnPage>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Schematic {
     pages: Vec<Page>,
-    pub mm: MouseMode,
 }
 
 /// Defines the mode for mouse interaction
-#[derive(PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq)]
+#[non_exhaustive]
 pub enum MouseMode {
     Selection,
     TextDrag,
@@ -27,6 +33,7 @@ pub enum MouseMode {
 
 pub struct SchematicWidget<'a> {
     sch: &'a mut Schematic,
+    pub mm: &'a mut MouseMode,
     page: usize,
 }
 
@@ -49,16 +56,28 @@ impl Schematic {
             texts: t,
         };
         p.push(page);
-        Self {
-            pages: p,
-            mm: MouseMode::Selection,
-        }
+        Self { pages: p }
+    }
+
+    /// Save the schematic to the path specified, returns true when the saving occurred
+    pub fn save(&self, path: &String) -> Result<(), std::io::Error> {
+        let d = bincode::serialize(self).unwrap();
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(path)?;
+        file.write_all(&d)?;
+        Ok(())
     }
 }
 
 impl<'a> SchematicWidget<'a> {
-    pub fn new(sch: &'a mut Schematic) -> Self {
-        Self { sch: sch, page: 0 }
+    pub fn new(sch: &'a mut Schematic, mm: &'a mut MouseMode) -> Self {
+        Self {
+            sch: sch,
+            page: 0,
+            mm,
+        }
     }
 }
 
@@ -97,7 +116,7 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
                     focusable: true,
                 },
             );
-            match self.sch.mm {
+            match self.mm {
                 MouseMode::Selection => {
                     if response.clicked() {
                         println!("Clicked");
@@ -134,7 +153,7 @@ impl<'a> eframe::egui::Widget for SchematicWidget<'a> {
                         focusable: true,
                     },
                 );
-                match self.sch.mm {
+                match self.mm {
                     MouseMode::Selection => {
                         if response.clicked() {
                             println!("Clicked");
