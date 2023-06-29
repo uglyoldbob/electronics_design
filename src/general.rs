@@ -60,3 +60,11 @@ impl StoragePath {
         }
     }
 }
+
+/// Messages that can be sent between processes
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[non_exhaustive]
+pub enum IpcMessage {
+    /// A new process is being created
+    NewProcess,
+}

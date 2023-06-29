@@ -89,6 +89,7 @@ impl TrackedWindow for Library {
         let mut quit = false;
 
         let mut windows_to_create = vec![];
+        windows_to_create.append(&mut c.receive_ipc());
 
         let is_saved = c.library_log.is_saved();
         if self.old_saved_status != is_saved {
@@ -401,8 +402,7 @@ impl TrackedWindow for Library {
                                                 }
                                             }
                                         }
-                                    }
-                                    else if self.selection.len() > 1 {
+                                    } else if self.selection.len() > 1 {
                                         ui.label("There are multiple selections");
                                     }
                                     ui.label("Right");

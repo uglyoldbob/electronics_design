@@ -11,6 +11,8 @@ mod symbol;
 
 use std::collections::HashMap;
 
+use egui_multiwin::multi_window::NewWindowRequest;
+
 use crate::schematic::SchematicHolder;
 
 mod window;
@@ -19,12 +21,53 @@ mod window;
 const PACKAGE_NAME: &str = "UglyOldBob Electronics";
 
 fn main() {
+    let instance = single_instance::SingleInstance::new(PACKAGE_NAME).unwrap();
+    if !instance.is_single() {
+        let ipc_sender =
+            interprocess::local_socket::LocalSocketStream::connect(PACKAGE_NAME).unwrap();
+        bincode::serialize_into(ipc_sender, &general::IpcMessage::NewProcess).unwrap();
+        return;
+    }
+
+    let (sender, receiver) = std::sync::mpsc::channel::<general::IpcMessage>();
+    std::thread::spawn(move || {
+        let ipc_listener =
+            interprocess::local_socket::LocalSocketListener::bind(PACKAGE_NAME).unwrap();
+        for i in ipc_listener.incoming() {
+            if let Ok(mut i) = i {
+                let sender = sender.clone();
+                std::thread::spawn(move || {
+                    let s = sender;
+                    loop {
+                        let msg = bincode::deserialize_from::<
+                            &mut interprocess::local_socket::LocalSocketStream,
+                            general::IpcMessage,
+                        >(&mut i);
+                        if let Ok(msg) = msg {
+                            println!("Received a {:?}", msg);
+                            if s.send(msg).is_err() {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                });
+            }
+        }
+    });
     let event_loop = egui_multiwin::glutin::event_loop::EventLoopBuilder::with_user_event().build();
     let mut multi_window = egui_multiwin::multi_window::MultiWindow::new();
     let root_window = window::schematic::SchematicWindow::request();
     let libedit = window::library::Library::request();
 
-    let mut ac = MyApp::default();
+    let mut ac = MyApp {
+        schematic: None,
+        libraries: HashMap::new(),
+        library_log: undo::Record::new(),
+        dirs: directories::ProjectDirs::from("com", "UglyOldBob", "ElectronicsDesign"),
+        receiver,
+    };
 
     for l in crate::library::LibraryHolder::get_user_libraries(&ac.dirs) {
         ac.libraries.insert(l.library.name.clone(), Some(l));
@@ -44,6 +87,24 @@ pub struct MyApp {
     library_log: undo::Record<crate::library::LibraryAction>,
     /// The directories for the system
     dirs: Option<directories::ProjectDirs>,
+    /// For receiving messages from other processes
+    receiver: std::sync::mpsc::Receiver<general::IpcMessage>,
+}
+
+impl MyApp {
+    /// Processes messages received from other processes
+    pub fn receive_ipc(&mut self) -> Vec<NewWindowRequest<MyApp>> {
+        let mut windows_to_create = vec![];
+        while let Ok(m) = self.receiver.try_recv() {
+            println!("gui received {:?}", m);
+            match m {
+                general::IpcMessage::NewProcess => {
+                    windows_to_create.push(window::schematic::SchematicWindow::request());
+                }
+            }
+        }
+        windows_to_create
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -55,15 +116,4 @@ fn execute<F: std::future::Future<Output = ()> + Send + 'static>(f: F) {
 ///Run an asynchronous object on a new thread. Maybe not the best way of accomplishing this, but it does work.
 fn execute<F: std::future::Future<Output = ()> + 'static>(f: F) {
     wasm_bindgen_futures::spawn_local(f);
-}
-
-impl Default for MyApp {
-    fn default() -> Self {
-        Self {
-            schematic: None,
-            libraries: HashMap::new(),
-            library_log: undo::Record::new(),
-            dirs: directories::ProjectDirs::from("com", "UglyOldBob", "ElectronicsDesign"),
-        }
-    }
 }
