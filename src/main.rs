@@ -29,13 +29,19 @@ fn main() {
         return;
     }
 
+    let event_loop = egui_multiwin::glutin::event_loop::EventLoopBuilder::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+
     let (sender, receiver) = std::sync::mpsc::channel::<general::IpcMessage>();
+    let proxy = proxy.clone();
     std::thread::spawn(move || {
+        let proxy = proxy.clone();
         let ipc_listener =
             interprocess::local_socket::LocalSocketListener::bind(PACKAGE_NAME).unwrap();
         for i in ipc_listener.incoming() {
             if let Ok(mut i) = i {
                 let sender = sender.clone();
+                let proxy = proxy.clone();
                 std::thread::spawn(move || {
                     let s = sender;
                     loop {
@@ -48,6 +54,7 @@ fn main() {
                             if s.send(msg).is_err() {
                                 break;
                             }
+                            proxy.send_event(()).ok();
                         } else {
                             break;
                         }
@@ -56,7 +63,7 @@ fn main() {
             }
         }
     });
-    let event_loop = egui_multiwin::glutin::event_loop::EventLoopBuilder::with_user_event().build();
+
     let mut multi_window = egui_multiwin::multi_window::MultiWindow::new();
     let root_window = window::schematic::SchematicWindow::request();
     let libedit = window::library::Library::request();
@@ -72,7 +79,6 @@ fn main() {
     for l in crate::library::LibraryHolder::get_user_libraries(&ac.dirs) {
         ac.libraries.insert(l.library.name.clone(), Some(l));
     }
-
     let _e = multi_window.add(libedit, &event_loop);
     multi_window.run(event_loop, ac);
 }
