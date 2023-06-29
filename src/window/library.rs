@@ -26,6 +26,12 @@ pub struct Library {
     old_saved_status: bool,
     /// The mouse mode for the library editor.
     mm: MouseMode,
+    /// The origin for the symbol drawing
+    origin: egui::Vec2,
+    /// True when the widget should recenter
+    recenter: bool,
+    /// The zoom factor for the widget
+    zoom: f32,
 }
 
 impl Library {
@@ -39,6 +45,9 @@ impl Library {
                 selection: Vec::new(),
                 old_saved_status: false,
                 mm: MouseMode::Selection,
+                origin: egui::vec2(0.0, 0.0),
+                recenter: false,
+                zoom: 1.0,
             }),
             builder: egui_multiwin::glutin::window::WindowBuilder::new()
                 .with_resizable(true)
@@ -296,6 +305,7 @@ impl TrackedWindow for Library {
                                                 .clicked()
                                             {
                                                 self.selected_symbol = Some(name.clone());
+                                                self.recenter = true;
                                             }
                                         }
                                     });
@@ -392,6 +402,9 @@ impl TrackedWindow for Library {
                                             }
                                         }
                                     }
+                                    else if self.selection.len() > 1 {
+                                        ui.label("There are multiple selections");
+                                    }
                                     ui.label("Right");
                                 });
                         },
@@ -419,8 +432,24 @@ impl TrackedWindow for Library {
                                     &mut self.mm,
                                     &mut self.selection,
                                     &mut actions,
+                                    &mut self.origin,
+                                    &mut self.zoom,
+                                    self.recenter,
                                 );
-                                ui.add(sym);
+                                self.recenter = false;
+                                let resp = ui.add(sym);
+                                if resp.dragged_by(egui::PointerButton::Middle) {
+                                    self.origin += resp.drag_delta() / self.zoom;
+                                }
+                                if resp.double_clicked_by(egui::PointerButton::Middle) {
+                                    self.recenter = true;
+                                }
+                                if resp.hovered() {
+                                    let scroll = ui.input().scroll_delta;
+                                    if scroll.y.abs() > f32::EPSILON {
+                                        self.zoom *= f32::powf(1.0025, scroll.y);
+                                    }
+                                }
                             }
                         })
                     })

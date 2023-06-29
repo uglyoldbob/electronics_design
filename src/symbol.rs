@@ -2,7 +2,7 @@
 
 use crate::library::LibraryAction;
 use crate::schematic::TextOnPage;
-use egui_multiwin::egui;
+use egui_multiwin::egui::{self, Color32};
 
 /// Defines the mode for mouse interaction for symbols
 #[derive(serde::Serialize, serde::Deserialize, PartialEq)]
@@ -69,6 +69,12 @@ pub struct SymbolDefinitionWidget<'a> {
     selection: &'a mut Vec<SymbolWidgetSelection>,
     /// The log for applying symbol modifications
     actions: &'a mut Vec<LibraryAction>,
+    /// The origin modifier for panning the symbol around
+    origin: &'a mut egui::Vec2,
+    /// The zoom factor
+    zoom: &'a mut f32,
+    /// The component should be recentered
+    recenter: bool,
 }
 
 impl<'a> SymbolDefinitionWidget<'a> {
@@ -78,12 +84,18 @@ impl<'a> SymbolDefinitionWidget<'a> {
         mm: &'a mut MouseMode,
         selection: &'a mut Vec<SymbolWidgetSelection>,
         actions: &'a mut Vec<LibraryAction>,
+        origin: &'a mut egui::Vec2,
+        zoom: &'a mut f32,
+        recenter: bool,
     ) -> Self {
         Self {
             sym,
             mm,
             selection,
             actions,
+            origin,
+            zoom,
+            recenter,
         }
     }
 }
@@ -95,13 +107,17 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             drag: true,
             focusable: true,
         };
-        let _context = ui.ctx();
         let mut area = ui.cursor();
         area.max.x = ui.available_width() + area.min.x;
         area.max.y = ui.available_height() + area.min.y;
         let size = egui::vec2(area.max.x - area.min.x, area.max.y - area.min.y);
+        if self.recenter {
+            *self.origin = area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0);
+        }
 
-        let (pr, pntr) = ui.allocate_painter(size, sense);
+        let zoom_origin = area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0);
+
+        let (mut pr, pntr) = ui.allocate_painter(size, sense);
         let color = egui::Color32::RED;
 
         match &self.mm {
@@ -118,15 +134,42 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             }
         }
 
-        if pr.dragged_by(egui::PointerButton::Middle) {
-            println!("what a drag");
+        let display_origin = (((*self.origin - zoom_origin) * *self.zoom) + zoom_origin).to_pos2();
+        let mut stroke = egui::Stroke::default();
+        stroke.width = 1.0;
+        stroke.color = Color32::BLUE;
+        pntr.line_segment(
+            [
+                egui::pos2(area.min.x, display_origin.y),
+                egui::pos2(area.max.x, display_origin.y),
+            ],
+            stroke,
+        );
+        pntr.line_segment(
+            [
+                egui::pos2(display_origin.x, area.min.y),
+                egui::pos2(display_origin.x, area.max.y),
+            ],
+            stroke,
+        );
+
+        if pr.clicked() {
+            match self.mm {
+                MouseMode::Selection => {
+                    let inp = ui.input();
+                    if !inp.modifiers.shift && !inp.modifiers.ctrl {
+                        self.selection.clear();
+                    }
+                }
+                _ => {}
+            }
         }
 
         if let MouseMode::NewText = &self.mm {
             let pos = ui.input().pointer.interact_pos();
             if let Some(pos) = pos {
                 if pr.clicked() {
-                    let pos2 = pos - area.left_top();
+                    let pos2 = pos - area.left_top() - *self.origin;
                     self.actions.push(LibraryAction::CreateText {
                         libname: self.sym.libname.clone(),
                         symname: self.sym.sym.name.clone(),
@@ -143,7 +186,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                         egui::Align2::LEFT_TOP,
                         "New text".to_string(),
                         egui::FontId {
-                            size: 24.0,
+                            size: 24.0 * *self.zoom,
                             family: egui::FontFamily::Monospace,
                         },
                         color,
@@ -156,20 +199,23 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             let pos = egui::Vec2 { x: t.x, y: t.y };
             let align = egui::Align2::LEFT_TOP;
             let font = egui::FontId {
-                size: 24.0,
+                size: 24.0 * *self.zoom,
                 family: egui::FontFamily::Monospace,
             };
-            let temp = area.left_top() + pos;
+            let temp = area.left_top() + pos + *self.origin;
+            let temp = (((temp - zoom_origin).to_vec2() * *self.zoom) + zoom_origin).to_pos2();
             let color = t.color();
             let r = pntr.text(temp, align, t.text.clone(), font, color);
             let id = egui::Id::new(1 + i);
             let response = ui.interact(r, id, sense);
-            match self.mm {
-                MouseMode::NewText => {}
+            let response = match self.mm {
+                MouseMode::NewText => response,
                 MouseMode::Selection => {
                     if response.clicked() {
-                        println!("Clicked");
-                        self.selection.clear();
+                        let inp = ui.input();
+                        if !inp.modifiers.shift && !inp.modifiers.ctrl {
+                            self.selection.clear();
+                        }
                         self.selection
                             .push(SymbolWidgetSelection::Text { textnum: i });
                     }
@@ -177,14 +223,11 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                         if ui.button("Properties").clicked() {
                             ui.close_menu();
                         }
-                    });
+                    })
                 }
                 MouseMode::TextDrag => {
-                    if response.clicked() {
-                        println!("Clicked");
-                    }
-                    if response.dragged() {
-                        let amount = response.drag_delta();
+                    if response.dragged_by(egui::PointerButton::Primary) {
+                        let amount = response.drag_delta() / *self.zoom;
                         let a = LibraryAction::MoveText {
                             libname: self.sym.libname.clone(),
                             symname: self.sym.sym.name.clone(),
@@ -198,21 +241,13 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                         if ui.button("Properties").clicked() {
                             ui.close_menu();
                         }
-                    });
+                    })
                 }
-            }
+            };
+            pr = pr.union(response);
         }
 
-        if pr.clicked() {
-            match self.mm {
-                MouseMode::Selection => {
-                    self.selection.clear();
-                }
-                _ => {}
-            }
-        }
-
-        pr.context_menu(|ui| {
+        let pr = pr.context_menu(|ui| {
             if ui.button("Do a thing").clicked() {
                 ui.close_menu();
             }
@@ -221,15 +256,8 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             }
         });
 
-        let (_area, response) = ui.allocate_exact_size(
-            size,
-            egui::Sense {
-                click: true,
-                drag: true,
-                focusable: true,
-            },
-        );
-        response
+        let (_area, response) = ui.allocate_exact_size(size, sense);
+        pr.union(response)
     }
 }
 
