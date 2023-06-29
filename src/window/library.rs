@@ -85,49 +85,51 @@ impl TrackedWindow for Library {
         if self.old_saved_status != is_saved {
             self.old_saved_status = is_saved;
             self.new_title = if is_saved {
-                Some(format!("{} Library Editor", crate::PACKAGE_NAME.to_string()))
-            }
-            else 
-            {
-                Some(format!("*{} Library Editor", crate::PACKAGE_NAME.to_string()))
+                Some(format!(
+                    "{} Library Editor",
+                    crate::PACKAGE_NAME.to_string()
+                ))
+            } else {
+                Some(format!(
+                    "*{} Library Editor",
+                    crate::PACKAGE_NAME.to_string()
+                ))
             };
         }
 
         egui::TopBottomPanel::top("menubar").show(&egui.egui_ctx, |ui| {
             ui.horizontal_top(|ui| {
                 ui.menu_button("File", |ui| {
-                    if let Some(lib) = &self.selected_library {
-                        if ui.button("Save all libraries").clicked() {
-                            let mut no_errors = true;
-                            for (_libname, lib) in &mut c.libraries {
-                                if let Some(libh) = lib {
-                                    if libh.can_save() {
-                                        if let Err(e) = libh.save() {
-                                            no_errors = false;
-                                            let _e = native_dialog::MessageDialog::new()
-                                                .set_type(native_dialog::MessageType::Error)
-                                                .set_title(&format!(
-                                                    "Failed to save {} library",
-                                                    libh.library.name
-                                                ))
-                                                .set_text(e.to_string().as_str())
-                                                .show_alert();
-                                        }
-                                    } else {
+                    if ui.button("Save all libraries").clicked() {
+                        let mut no_errors = true;
+                        for (_libname, lib) in &mut c.libraries {
+                            if let Some(libh) = lib {
+                                if libh.can_save() {
+                                    if let Err(e) = libh.save() {
                                         no_errors = false;
                                         let _e = native_dialog::MessageDialog::new()
                                             .set_type(native_dialog::MessageType::Error)
-                                            .set_title("Failed to save library")
-                                            .set_text("No path to save library exists?")
+                                            .set_title(&format!(
+                                                "Failed to save {} library",
+                                                libh.library.name
+                                            ))
+                                            .set_text(e.to_string().as_str())
                                             .show_alert();
                                     }
+                                } else {
+                                    no_errors = false;
+                                    let _e = native_dialog::MessageDialog::new()
+                                        .set_type(native_dialog::MessageType::Error)
+                                        .set_title("Failed to save library")
+                                        .set_text("No path to save library exists?")
+                                        .show_alert();
                                 }
                             }
-                            if no_errors {
-                                c.library_log.set_saved(true);
-                            }
-                            ui.close_menu();
                         }
+                        if no_errors {
+                            c.library_log.set_saved(true);
+                        }
+                        ui.close_menu();
                     }
                     ui.menu_button("Recent", |ui| {
                         if ui.button("Thing 1").clicked() {

@@ -114,7 +114,7 @@ impl TrackedWindow for LibraryName {
                     crate::general::StoragePath::LocalFilesystem(_p) => {
                         if ui.button("Select save path").clicked() {
                             let f = rfd::AsyncFileDialog::new()
-                                .add_filter("Raw", &["url"])
+                                .add_filter("Raw", &["uol"])
                                 .set_title("Save library")
                                 .set_directory(directories::ProjectDirs::data_dir(
                                     c.dirs.as_ref().unwrap(),
@@ -125,7 +125,7 @@ impl TrackedWindow for LibraryName {
                                 let file = f.await;
                                 if let Some(file) = file {
                                     let mut fname = file.path().to_path_buf();
-                                    fname.set_extension("url");
+                                    fname.set_extension("uol");
                                     message_sender
                                         .send(Message::CreateNewLibrary(
                                             crate::general::StoragePath::LocalFilesystem(

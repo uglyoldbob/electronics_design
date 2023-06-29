@@ -2,10 +2,10 @@
     // Use IntelliSense to learn about possible attributes.
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
+    "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+			"label": "build",
             "type": "shell",
             "command":"cargo",
             "args": ["build"],
@@ -13,13 +13,15 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
             "dependsOn": "format",
             "presentation": {
                 "echo": true,
                 "reveal": "always",
                 "focus": true,
-                "panel": "shared",
-                "showReuseMessage": true,
+                "panel": "new",
                 "clear": true
             }
         },
@@ -27,6 +29,9 @@
             "label": "format",
             "type": "shell",
             "command": "cargo",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
             "args": ["fmt"],
         }
     ]
