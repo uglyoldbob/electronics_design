@@ -60,7 +60,7 @@ impl TrackedWindow<MyApp> for LibraryName {
 
     fn set_root(&mut self, _root: bool) {}
 
-    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<MyApp> {
+    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow, _window: &egui_multiwin::winit::window::Window) -> RedrawResponse<MyApp> {
         let mut quit = false;
 
         let windows_to_create = vec![];

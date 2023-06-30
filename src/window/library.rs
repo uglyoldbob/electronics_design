@@ -68,7 +68,7 @@ impl TrackedWindow<MyApp> for Library {
 
     fn set_root(&mut self, _root: bool) {}
 
-    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<MyApp> {
+    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow, window: &egui_multiwin::winit::window::Window) -> RedrawResponse<MyApp> {
         let mut quit = false;
 
         let mut windows_to_create = vec![];
@@ -77,16 +77,11 @@ impl TrackedWindow<MyApp> for Library {
         if self.old_saved_status != is_saved {
             self.old_saved_status = is_saved;
             let new_title = if is_saved {
-                format!(
-                    "{} Library Editor",
-                    crate::PACKAGE_NAME.to_string()
-                )
+                format!("{} Library Editor", crate::PACKAGE_NAME.to_string())
             } else {
-                format!(
-                    "*{} Library Editor",
-                    crate::PACKAGE_NAME.to_string()
-                )
+                format!("*{} Library Editor", crate::PACKAGE_NAME.to_string())
             };
+            window.set_title(&new_title);
         }
 
         egui::TopBottomPanel::top("menubar").show(&egui.egui_ctx, |ui| {
