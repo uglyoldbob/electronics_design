@@ -33,14 +33,14 @@ fn main() {
         dirs: directories::ProjectDirs::from("com", "UglyOldBob", "ElectronicsDesign"),
     };
 
-    let prefix = if let Some(dirs) = &ac.dirs {
-        dirs.cache_dir().to_str().unwrap()
-    } else {
-        ""
-    };
     let mut ipcname = String::new();
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
+        let prefix = if let Some(dirs) = &ac.dirs {
+            dirs.cache_dir().to_str().unwrap()
+        } else {
+            ""
+        };
         ipcname.push_str(&format!("{}/{}", prefix, PACKAGE_NAME));
         let _e = std::fs::DirBuilder::new().recursive(true).create(&prefix);
     }
