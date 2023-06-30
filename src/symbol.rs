@@ -122,13 +122,13 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
 
         match &self.mm {
             MouseMode::NewText | MouseMode::TextDrag => {
-                if ui.input().key_pressed(egui::Key::Escape) {
+                if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                     *self.mm = MouseMode::Selection;
                 }
                 self.selection.clear();
             }
             MouseMode::Selection => {
-                if ui.input().key_pressed(egui::Key::Escape) {
+                if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                     self.selection.clear();
                 }
             }
@@ -156,8 +156,8 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         if pr.clicked() {
             match self.mm {
                 MouseMode::Selection => {
-                    let inp = ui.input();
-                    if !inp.modifiers.shift && !inp.modifiers.ctrl {
+                    let inp = ui.input(|i| i.modifiers);
+                    if !inp.shift && !inp.ctrl {
                         self.selection.clear();
                     }
                 }
@@ -166,7 +166,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         }
 
         if let MouseMode::NewText = &self.mm {
-            let pos = ui.input().pointer.interact_pos();
+            let pos = ui.input(|i| i.pointer.interact_pos());
             if let Some(pos) = pos {
                 if pr.clicked() {
                     let pos2 = pos - area.left_top() - *self.origin;
@@ -212,8 +212,8 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                 MouseMode::NewText => response,
                 MouseMode::Selection => {
                     if response.clicked() {
-                        let inp = ui.input();
-                        if !inp.modifiers.shift && !inp.modifiers.ctrl {
+                        let inp = ui.input(|i| i.modifiers);
+                        if !inp.shift && !inp.ctrl {
                             self.selection.clear();
                         }
                         self.selection

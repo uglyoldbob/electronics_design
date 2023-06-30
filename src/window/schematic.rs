@@ -45,9 +45,9 @@ impl SchematicWindow {
                 message_channel: std::sync::mpsc::channel(),
                 mm: MouseMode::Selection,
             }),
-            builder: egui_multiwin::glutin::window::WindowBuilder::new()
+            builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
-                .with_inner_size(egui_multiwin::glutin::dpi::LogicalSize {
+                .with_inner_size(egui_multiwin::winit::dpi::LogicalSize {
                     width: 800.0,
                     height: 600.0,
                 })
@@ -60,28 +60,14 @@ impl SchematicWindow {
     }
 }
 
-impl TrackedWindow for SchematicWindow {
-    type Data = MyApp;
-
+impl TrackedWindow<MyApp> for SchematicWindow {
     fn is_root(&self) -> bool {
         true
     }
 
     fn set_root(&mut self, _root: bool) {}
 
-    fn opengl_after(
-        &mut self,
-        _c: &mut Self::Data,
-        gl_window: &mut egui_multiwin::glutin::WindowedContext<
-            egui_multiwin::glutin::PossiblyCurrent,
-        >,
-    ) {
-        if let Some(title) = self.new_title.take() {
-            gl_window.window().set_title(&title);
-        }
-    }
-
-    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<Self::Data> {
+    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow, _window: &egui_multiwin::winit::window::Window) -> RedrawResponse<MyApp> {
         let mut quit = false;
 
         let windows_to_create = vec![];

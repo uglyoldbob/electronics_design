@@ -14,8 +14,6 @@ use crate::MyApp;
 
 /// The window structure
 pub struct Library {
-    /// Set when the title needs to change.
-    new_title: Option<String>,
     /// The name of the library selected for viewing / editing
     selected_library: Option<String>,
     /// The symbol selected for viewing / editing
@@ -39,7 +37,6 @@ impl Library {
     pub fn request() -> NewWindowRequest<MyApp> {
         NewWindowRequest {
             window_state: Box::new(Self {
-                new_title: None,
                 selected_library: None,
                 selected_symbol: None,
                 selection: Vec::new(),
@@ -49,9 +46,9 @@ impl Library {
                 recenter: false,
                 zoom: 1.0,
             }),
-            builder: egui_multiwin::glutin::window::WindowBuilder::new()
+            builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
-                .with_inner_size(egui_multiwin::glutin::dpi::LogicalSize {
+                .with_inner_size(egui_multiwin::winit::dpi::LogicalSize {
                     width: 800.0,
                     height: 600.0,
                 })
@@ -64,47 +61,27 @@ impl Library {
     }
 }
 
-impl TrackedWindow for Library {
-    type Data = MyApp;
-
+impl TrackedWindow<MyApp> for Library {
     fn is_root(&self) -> bool {
         true
     }
 
     fn set_root(&mut self, _root: bool) {}
 
-    fn opengl_after(
-        &mut self,
-        _c: &mut Self::Data,
-        gl_window: &mut egui_multiwin::glutin::WindowedContext<
-            egui_multiwin::glutin::PossiblyCurrent,
-        >,
-    ) {
-        if let Some(title) = self.new_title.take() {
-            gl_window.window().set_title(&title);
-        }
-    }
-
-    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<Self::Data> {
+    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow, window: &egui_multiwin::winit::window::Window) -> RedrawResponse<MyApp> {
         let mut quit = false;
 
         let mut windows_to_create = vec![];
-        windows_to_create.append(&mut c.receive_ipc());
 
         let is_saved = c.library_log.is_saved();
         if self.old_saved_status != is_saved {
             self.old_saved_status = is_saved;
-            self.new_title = if is_saved {
-                Some(format!(
-                    "{} Library Editor",
-                    crate::PACKAGE_NAME.to_string()
-                ))
+            let new_title = if is_saved {
+                format!("{} Library Editor", crate::PACKAGE_NAME.to_string())
             } else {
-                Some(format!(
-                    "*{} Library Editor",
-                    crate::PACKAGE_NAME.to_string()
-                ))
+                format!("*{} Library Editor", crate::PACKAGE_NAME.to_string())
             };
+            window.set_title(&new_title);
         }
 
         egui::TopBottomPanel::top("menubar").show(&egui.egui_ctx, |ui| {
@@ -171,36 +148,40 @@ impl TrackedWindow for Library {
             });
         });
 
-        let mut input = egui.egui_ctx.input_mut();
-        if input.consume_shortcut(&egui::KeyboardShortcut {
-            modifiers: egui::Modifiers {
-                alt: false,
-                ctrl: true,
-                shift: false,
-                mac_cmd: false,
-                command: false,
-            },
-            key: egui::Key::Z,
-        }) {
+        let input = egui.egui_ctx.input_mut(|i| {
+            i.consume_shortcut(&egui::KeyboardShortcut {
+                modifiers: egui::Modifiers {
+                    alt: false,
+                    ctrl: true,
+                    shift: false,
+                    mac_cmd: false,
+                    command: false,
+                },
+                key: egui::Key::Z,
+            })
+        });
+        if input {
             if c.library_log.can_undo() {
                 c.library_log.undo(&mut c.libraries);
             }
         }
-        if input.consume_shortcut(&egui::KeyboardShortcut {
-            modifiers: egui::Modifiers {
-                alt: false,
-                ctrl: true,
-                shift: false,
-                mac_cmd: false,
-                command: false,
-            },
-            key: egui::Key::Y,
-        }) {
+        let input = egui.egui_ctx.input_mut(|i| {
+            i.consume_shortcut(&egui::KeyboardShortcut {
+                modifiers: egui::Modifiers {
+                    alt: false,
+                    ctrl: true,
+                    shift: false,
+                    mac_cmd: false,
+                    command: false,
+                },
+                key: egui::Key::Y,
+            })
+        });
+        if input {
             if c.library_log.can_redo() {
                 c.library_log.redo(&mut c.libraries);
             }
         }
-        drop(input);
 
         egui::TopBottomPanel::top("button bar").show(&egui.egui_ctx, |ui| {
             ui.horizontal(|ui| {
@@ -226,7 +207,9 @@ impl TrackedWindow for Library {
                     .resizable(true)
                     .show_inside(ui, |ui| {
                         egui::ScrollArea::vertical()
-                            .always_show_scroll(true)
+                            .scroll_bar_visibility(
+                                egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                            )
                             .auto_shrink([false, false])
                             .stick_to_right(true)
                             .show(ui, |ui| {
@@ -273,7 +256,9 @@ impl TrackedWindow for Library {
                             .show_inside(ui, |ui| {
                                 egui::ScrollArea::vertical()
                                     .id_source("symbol scroll")
-                                    .always_show_scroll(true)
+                                    .scroll_bar_visibility(
+                                        egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                    )
                                     .auto_shrink([false, false])
                                     .stick_to_right(true)
                                     .show(ui, |ui| {
@@ -329,7 +314,9 @@ impl TrackedWindow for Library {
                         &egui.egui_ctx,
                         |ui| {
                             egui::ScrollArea::vertical()
-                                .always_show_scroll(true)
+                                .scroll_bar_visibility(
+                                    egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                )
                                 .auto_shrink([false, false])
                                 .stick_to_right(true)
                                 .show(ui, |ui| {
@@ -445,7 +432,7 @@ impl TrackedWindow for Library {
                                     self.recenter = true;
                                 }
                                 if resp.hovered() {
-                                    let scroll = ui.input().scroll_delta;
+                                    let scroll = ui.input(|i| i.scroll_delta);
                                     if scroll.y.abs() > f32::EPSILON {
                                         self.zoom *= f32::powf(1.0025, scroll.y);
                                     }
