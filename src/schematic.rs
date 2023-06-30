@@ -518,7 +518,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
 
         match &self.mm {
             MouseMode::NewText | MouseMode::TextDrag => {
-                if ui.input().key_pressed(egui::Key::Escape) {
+                if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                     *self.mm = MouseMode::Selection;
                 }
                 if self.selection.is_some() {
@@ -526,14 +526,14 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 }
             }
             MouseMode::Selection => {
-                if ui.input().key_pressed(egui::Key::Escape) && self.selection.is_some() {
+                if ui.input(|i| i.key_pressed(egui::Key::Escape)) && self.selection.is_some() {
                     *self.selection = None;
                 }
             }
         }
 
         if let MouseMode::NewText = &self.mm {
-            let pos = ui.input().pointer.interact_pos();
+            let pos = ui.input(|i| i.pointer.interact_pos());
             if let Some(pos) = pos {
                 if pr.clicked() {
                     let pos2 = pos - area.left_top();

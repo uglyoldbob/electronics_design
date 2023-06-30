@@ -38,9 +38,9 @@ impl LibraryName {
                 selected_path: crate::general::StoragePath::default(),
                 message_channel: std::sync::mpsc::channel(),
             }),
-            builder: egui_multiwin::glutin::window::WindowBuilder::new()
+            builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
-                .with_inner_size(egui_multiwin::glutin::dpi::LogicalSize {
+                .with_inner_size(egui_multiwin::winit::dpi::LogicalSize {
                     width: 320.0,
                     height: 240.0,
                 })
@@ -53,16 +53,14 @@ impl LibraryName {
     }
 }
 
-impl TrackedWindow for LibraryName {
-    type Data = MyApp;
-
+impl TrackedWindow<MyApp> for LibraryName {
     fn is_root(&self) -> bool {
         false
     }
 
     fn set_root(&mut self, _root: bool) {}
 
-    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<Self::Data> {
+    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<MyApp> {
         let mut quit = false;
 
         let windows_to_create = vec![];

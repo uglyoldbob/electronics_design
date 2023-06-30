@@ -26,9 +26,9 @@ impl SymbolName {
                 lib_name,
                 name: "".to_string(),
             }),
-            builder: egui_multiwin::glutin::window::WindowBuilder::new()
+            builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
-                .with_inner_size(egui_multiwin::glutin::dpi::LogicalSize {
+                .with_inner_size(egui_multiwin::winit::dpi::LogicalSize {
                     width: 320.0,
                     height: 240.0,
                 })
@@ -41,16 +41,14 @@ impl SymbolName {
     }
 }
 
-impl TrackedWindow for SymbolName {
-    type Data = MyApp;
-
+impl TrackedWindow<MyApp> for SymbolName {
     fn is_root(&self) -> bool {
         false
     }
 
     fn set_root(&mut self, _root: bool) {}
 
-    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<Self::Data> {
+    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow) -> RedrawResponse<MyApp> {
         let mut quit = false;
 
         let windows_to_create = vec![];
@@ -65,7 +63,8 @@ impl TrackedWindow for SymbolName {
             if let Some(Some(lib)) = lib {
                 if !self.name.is_empty() && lib.library.syms.contains_key(&self.name) {
                     ui.colored_label(egui::Color32::RED, "Symbol already exists");
-                } else if ui.button("Create").clicked() || ui.input().key_pressed(egui::Key::Enter)
+                } else if ui.button("Create").clicked()
+                    || ui.input(|i| i.key_pressed(egui::Key::Enter))
                 {
                     if !lib.library.syms.contains_key(&self.name) {
                         actionlog.push(LibraryAction::CreateSymbol {
