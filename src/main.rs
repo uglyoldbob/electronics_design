@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use egui_multiwin::{
     multi_window::{MultiWindow, NewWindowRequest},
-    winit::event_loop::{EventLoop, EventLoopBuilder},
+    winit::event_loop::EventLoopBuilder,
 };
 
 use crate::schematic::SchematicHolder;
@@ -62,7 +62,6 @@ fn main() {
     let event_loop = event_loop.build();
     let proxy = event_loop.create_proxy();
 
-    let proxy = proxy.clone();
     std::thread::spawn(move || {
         let proxy = proxy.clone();
         #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -73,22 +72,20 @@ fn main() {
                 println!("Error opening ipc {:?}", e);
             }
             Ok(ipc_listener) => {
-                for i in ipc_listener.incoming() {
-                    if let Ok(mut i) = i {
-                        let proxy = proxy.clone();
-                        std::thread::spawn(move || loop {
-                            let msg = bincode::deserialize_from::<
-                                &mut interprocess::local_socket::LocalSocketStream,
-                                general::IpcMessage,
-                            >(&mut i);
-                            if let Ok(msg) = msg {
-                                println!("Received a {:?}", msg);
-                                proxy.send_event(msg).ok();
-                            } else {
-                                break;
-                            }
-                        });
-                    }
+                for mut i in ipc_listener.incoming().flatten() {
+                    let proxy = proxy.clone();
+                    std::thread::spawn(move || loop {
+                        let msg = bincode::deserialize_from::<
+                            &mut interprocess::local_socket::LocalSocketStream,
+                            general::IpcMessage,
+                        >(&mut i);
+                        if let Ok(msg) = msg {
+                            println!("Received a {:?}", msg);
+                            proxy.send_event(msg).ok();
+                        } else {
+                            break;
+                        }
+                    });
                 }
             }
         }

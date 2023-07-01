@@ -40,7 +40,7 @@ impl StorageError {
     /// Convert the error to a string
     pub fn to_string(&self) -> String {
         match self {
-            StorageError::IoError(e) => format!("{:?}", e),
+            StorageError::IoError(e) => e.to_string(),
         }
     }
 }
