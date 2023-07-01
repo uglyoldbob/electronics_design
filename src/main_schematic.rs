@@ -15,7 +15,8 @@ fn main() {
     let mut ipcname = String::new();
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        let prefix = if let Some(dirs) = &ac.dirs {
+        let dirs = DIRS.clone();
+        let prefix = if let Some(dirs) = &dirs {
             dirs.cache_dir().to_str().unwrap()
         } else {
             ""

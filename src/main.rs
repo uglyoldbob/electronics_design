@@ -28,11 +28,12 @@ fn main() {
 
     let args: Vec<String> = std::env::args().collect();
 
+    let dirs = DIRS.clone();
     let mut ac = MyApp {
         schematic: None,
         libraries: HashMap::new(),
         library_log: undo::Record::new(),
-        dirs: directories::ProjectDirs::from("com", "UglyOldBob", "ElectronicsDesign"),
+        dirs,
         args,
     };
 
