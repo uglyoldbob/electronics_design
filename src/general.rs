@@ -65,6 +65,8 @@ impl StoragePath {
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 #[non_exhaustive]
 pub enum IpcMessage {
-    /// A new process is being created
-    NewProcess,
+    /// Create a new library editor
+    NewLibrary,
+    /// Create a new schematic window
+    NewSchematic,
 }
