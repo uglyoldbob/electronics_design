@@ -2,7 +2,10 @@
 
 #![deny(missing_docs)]
 #![deny(clippy::missing_docs_in_private_items)]
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")] // hide console window on Windows in release
+
+mod main_common;
+use main_common::*;
 
 mod general;
 mod library;
@@ -20,17 +23,17 @@ use crate::schematic::SchematicHolder;
 
 mod window;
 
-/// The name of the overall software package
-const PACKAGE_NAME: &str = "UglyOldBob Electronics";
-
 fn main() {
     let instance = single_instance::SingleInstance::new(PACKAGE_NAME).unwrap();
+
+    let args: Vec<String> = std::env::args().collect();
 
     let mut ac = MyApp {
         schematic: None,
         libraries: HashMap::new(),
         library_log: undo::Record::new(),
         dirs: directories::ProjectDirs::from("com", "UglyOldBob", "ElectronicsDesign"),
+        args,
     };
 
     let mut ipcname = String::new();
@@ -51,7 +54,7 @@ fn main() {
 
     if !instance.is_single() {
         let ipc_sender = interprocess::local_socket::LocalSocketStream::connect(ipcname).unwrap();
-        bincode::serialize_into(ipc_sender, &general::IpcMessage::NewProcess).unwrap();
+        bincode::serialize_into(ipc_sender, &general::IpcMessage::NewLibrary).unwrap();
         return;
     }
 
@@ -93,13 +96,24 @@ fn main() {
 
     let mut multi_window: MultiWindow<MyApp, general::IpcMessage> =
         egui_multiwin::multi_window::MultiWindow::new();
-    let root_window = window::schematic::SchematicWindow::request();
-    let libedit = window::library::Library::request();
 
     for l in crate::library::LibraryHolder::get_user_libraries(&ac.dirs) {
         ac.libraries.insert(l.library.name.clone(), Some(l));
     }
-    let _e = multi_window.add(libedit, &event_loop);
+
+    if ac.args.len() > 1 {
+        match ac.args[1].as_str() {
+            "schematic" => {
+                let _e =
+                    multi_window.add(window::schematic::SchematicWindow::request(), &event_loop);
+            }
+            _ => {
+                let _e = multi_window.add(window::library::Library::request(), &event_loop);
+            }
+        }
+    } else {
+        let _e = multi_window.add(window::library::Library::request(), &event_loop);
+    }
     multi_window.run(event_loop, ac);
 }
 
@@ -113,14 +127,19 @@ pub struct MyApp {
     library_log: undo::Record<crate::library::LibraryAction>,
     /// The directories for the system
     dirs: Option<directories::ProjectDirs>,
+    /// The command line arguments to the program
+    args: Vec<String>,
 }
 
 impl egui_multiwin::multi_window::CommonEventHandler<MyApp, general::IpcMessage> for MyApp {
     fn process_event(&mut self, event: general::IpcMessage) -> Vec<NewWindowRequest<MyApp>> {
         let mut windows_to_create = vec![];
         match event {
-            general::IpcMessage::NewProcess => {
+            general::IpcMessage::NewSchematic => {
                 windows_to_create.push(window::schematic::SchematicWindow::request());
+            }
+            general::IpcMessage::NewLibrary => {
+                windows_to_create.push(window::library::Library::request());
             }
         }
         windows_to_create

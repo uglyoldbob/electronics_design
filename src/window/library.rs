@@ -68,7 +68,12 @@ impl TrackedWindow<MyApp> for Library {
 
     fn set_root(&mut self, _root: bool) {}
 
-    fn redraw(&mut self, c: &mut MyApp, egui: &mut EguiGlow, window: &egui_multiwin::winit::window::Window) -> RedrawResponse<MyApp> {
+    fn redraw(
+        &mut self,
+        c: &mut MyApp,
+        egui: &mut EguiGlow,
+        window: &egui_multiwin::winit::window::Window,
+    ) -> RedrawResponse<MyApp> {
         let mut quit = false;
 
         let mut windows_to_create = vec![];
@@ -159,7 +164,7 @@ impl TrackedWindow<MyApp> for Library {
             })
         });
         if input && c.library_log.can_undo() {
-                c.library_log.undo(&mut c.libraries);
+            c.library_log.undo(&mut c.libraries);
         }
         let input = egui.egui_ctx.input_mut(|i| {
             i.consume_shortcut(&egui::KeyboardShortcut {
@@ -174,7 +179,7 @@ impl TrackedWindow<MyApp> for Library {
             })
         });
         if input && c.library_log.can_redo() {
-                c.library_log.redo(&mut c.libraries);
+            c.library_log.redo(&mut c.libraries);
         }
 
         egui::TopBottomPanel::top("button bar").show(&egui.egui_ctx, |ui| {

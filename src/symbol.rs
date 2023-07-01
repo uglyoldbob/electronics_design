@@ -135,7 +135,10 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         }
 
         let display_origin = (((*self.origin - zoom_origin) * *self.zoom) + zoom_origin).to_pos2();
-        let stroke = egui_multiwin::egui::Stroke { width: 1.0, color: Color32::BLUE };
+        let stroke = egui_multiwin::egui::Stroke {
+            width: 1.0,
+            color: Color32::BLUE,
+        };
         pntr.line_segment(
             [
                 egui::pos2(area.min.x, display_origin.y),
