@@ -4,6 +4,16 @@ use crate::library::LibraryAction;
 use crate::schematic::TextOnPage;
 use egui_multiwin::egui::{self, Color32};
 
+#[derive(serde::Serialize, serde::Deserialize, PartialEq)]
+#[non_exhaustive]
+/// Defines a pin for a symbol definition
+pub struct Pin {
+    /// The x location of the text
+    pub x: f32,
+    /// The y location of the text
+    pub y: f32,
+}
+
 /// Defines the mode for mouse interaction for symbols
 #[derive(serde::Serialize, serde::Deserialize, PartialEq)]
 #[non_exhaustive]
@@ -17,6 +27,7 @@ pub enum MouseMode {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 /// Defines what a symbol should look like
 pub struct SymbolDefinition {
     /// The name of the Symbol

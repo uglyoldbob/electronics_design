@@ -2,12 +2,16 @@
 
 #![deny(missing_docs)]
 #![deny(clippy::missing_docs_in_private_items)]
-#![cfg_attr(target_os = "windows", windows_subsystem = "windows")] // hide console window on Windows in release
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)] // hide console window on Windows in release
 
 mod main_common;
 use main_common::*;
 
 mod general;
+mod ipc;
 mod library;
 mod schematic;
 mod symbol;
@@ -55,11 +59,11 @@ fn main() {
 
     if !instance.is_single() {
         let ipc_sender = interprocess::local_socket::LocalSocketStream::connect(ipcname).unwrap();
-        bincode::serialize_into(ipc_sender, &general::IpcMessage::NewLibrary).unwrap();
+        bincode::serialize_into(ipc_sender, &ipc::IpcMessage::NewLibrary).unwrap();
         return;
     }
 
-    let mut event_loop: EventLoopBuilder<general::IpcMessage> =
+    let mut event_loop: EventLoopBuilder<ipc::IpcMessage> =
         egui_multiwin::winit::event_loop::EventLoopBuilder::with_user_event();
     #[cfg(target_os = "linux")]
     egui_multiwin::winit::platform::x11::EventLoopBuilderExtX11::with_x11(&mut event_loop);
@@ -81,7 +85,7 @@ fn main() {
                     std::thread::spawn(move || loop {
                         let msg = bincode::deserialize_from::<
                             &mut interprocess::local_socket::LocalSocketStream,
-                            general::IpcMessage,
+                            ipc::IpcMessage,
                         >(&mut i);
                         if let Ok(msg) = msg {
                             println!("Received a {:?}", msg);
@@ -95,7 +99,7 @@ fn main() {
         }
     });
 
-    let mut multi_window: MultiWindow<MyApp, general::IpcMessage> =
+    let mut multi_window: MultiWindow<MyApp, ipc::IpcMessage> =
         egui_multiwin::multi_window::MultiWindow::new();
 
     for l in crate::library::LibraryHolder::get_user_libraries(&ac.dirs) {
@@ -132,14 +136,14 @@ pub struct MyApp {
     args: Vec<String>,
 }
 
-impl egui_multiwin::multi_window::CommonEventHandler<MyApp, general::IpcMessage> for MyApp {
-    fn process_event(&mut self, event: general::IpcMessage) -> Vec<NewWindowRequest<MyApp>> {
+impl egui_multiwin::multi_window::CommonEventHandler<MyApp, ipc::IpcMessage> for MyApp {
+    fn process_event(&mut self, event: ipc::IpcMessage) -> Vec<NewWindowRequest<MyApp>> {
         let mut windows_to_create = vec![];
         match event {
-            general::IpcMessage::NewSchematic => {
+            ipc::IpcMessage::NewSchematic => {
                 windows_to_create.push(window::schematic::SchematicWindow::request());
             }
-            general::IpcMessage::NewLibrary => {
+            ipc::IpcMessage::NewLibrary => {
                 windows_to_create.push(window::library::Library::request());
             }
         }

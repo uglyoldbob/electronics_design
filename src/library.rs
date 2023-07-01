@@ -394,6 +394,7 @@ impl undo::Action for LibraryAction {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 /// A library. It is a collection of symbols, footprints, and 3d models
 pub struct Library {
     /// The name of the library. Must be unique for the system
@@ -422,14 +423,16 @@ pub struct LibraryHolder {
 
 impl LibraryHolder {
     /// Deserializes the buffer into possibly a library holder
-    pub fn load(data: &[u8], path: crate::general::StoragePath) -> Result<Self, ()> {
-        if let Ok(l) = bincode::deserialize(data) {
-            Ok(Self {
+    pub fn load(
+        data: &[u8],
+        path: crate::general::StoragePath,
+    ) -> Result<Self, bincode::ErrorKind> {
+        match bincode::deserialize(data) {
+            Ok(l) => Ok(Self {
                 library: l,
                 path: Some(path),
-            })
-        } else {
-            Err(())
+            }),
+            Err(e) => Err(*e),
         }
     }
 
@@ -494,6 +497,13 @@ impl LibraryHolder {
                                             path.to_string_lossy().to_string(),
                                         ),
                                     );
+                                    if let Err(e) = &asdf {
+                                        println!(
+                                            "ERROR Opening library {} {:?}",
+                                            path.to_string_lossy().to_string(),
+                                            e
+                                        );
+                                    }
                                     asdf.ok()
                                 } else {
                                     None

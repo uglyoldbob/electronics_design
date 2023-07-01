@@ -2,12 +2,15 @@
 
 #![deny(missing_docs)]
 #![deny(clippy::missing_docs_in_private_items)]
-#![cfg_attr(target_os = "windows", windows_subsystem = "windows")] // hide console window on Windows in release
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)] // hide console window on Windows in release
 
 mod main_common;
 use main_common::*;
 
-mod general;
+mod ipc;
 
 fn main() {
     let instance = single_instance::SingleInstance::new(PACKAGE_NAME).unwrap();
@@ -31,7 +34,7 @@ fn main() {
 
     if !instance.is_single() {
         let ipc_sender = interprocess::local_socket::LocalSocketStream::connect(ipcname).unwrap();
-        bincode::serialize_into(ipc_sender, &general::IpcMessage::NewSchematic).unwrap();
+        bincode::serialize_into(ipc_sender, &ipc::IpcMessage::NewSchematic).unwrap();
     } else {
         drop(instance);
         const NAME: &str = if cfg!(target_os = "windows") {

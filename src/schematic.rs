@@ -7,6 +7,7 @@ use std::io::Write;
 use crate::symbol::Symbol;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[non_exhaustive]
 /// Represents free text anywhere on a page or symbol
 pub struct TextOnPage {
     /// The text to display
@@ -32,6 +33,7 @@ impl TextOnPage {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 /// A single page of an electronic schematic
 pub struct Page {
     /// The symbols on the page
@@ -41,6 +43,7 @@ pub struct Page {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 /// Represents an entire electronic schematic
 pub struct Schematic {
     /// The list of pages for the schematic
