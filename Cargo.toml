@@ -19,7 +19,7 @@ rfd = "0.11.4"
 serde = {version = "1.0.164", features = ["derive"]}
 single-instance = "0.3.3"
 strum = { version = "0.25.0", features = ["derive"] }
-toml_edit = "0.14.3"
+toml = "0.7.5"
 undo = "0.49.0"
 
 [[bin]]

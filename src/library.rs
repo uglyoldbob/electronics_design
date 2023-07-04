@@ -1,6 +1,6 @@
 //! This module defines what a library is.
 
-use std::{collections::HashMap, io::Read};
+use std::collections::HashMap;
 
 use egui_multiwin::egui;
 
@@ -419,23 +419,11 @@ pub struct LibraryHolder {
     pub library: Library,
     /// Where the library is stored
     pub path: Option<crate::general::StoragePath>,
+    /// The file format to save the library in
+    format: crate::general::StorageFormat,
 }
 
 impl LibraryHolder {
-    /// Deserializes the buffer into possibly a library holder
-    pub fn load(
-        data: &[u8],
-        path: crate::general::StoragePath,
-    ) -> Result<Self, bincode::ErrorKind> {
-        match bincode::deserialize(data) {
-            Ok(l) => Ok(Self {
-                library: l,
-                path: Some(path),
-            }),
-            Err(e) => Err(*e),
-        }
-    }
-
     /// Sets the save path for the library
     pub fn set_path(&mut self, p: crate::general::StoragePath) {
         self.path = Some(p);
@@ -448,10 +436,10 @@ impl LibraryHolder {
 
     /// Saves the library to wherever it has been configured to be saved
     /// Will return Ok if the path is None
-    pub fn save(&self) -> Result<(), crate::general::StorageError> {
-        let serialized = bincode::serialize(&self.library).unwrap();
+    pub fn save(&self) -> Result<(), crate::general::StorageSaveError> {
         if let Some(path) = &self.path {
-            path.save(&serialized)
+            let mut writer = path.writer()?;
+            self.format.save(&mut writer, &self.library)
         } else {
             Ok(())
         }
@@ -462,6 +450,7 @@ impl LibraryHolder {
         Self {
             library: Library::new(name),
             path: None,
+            format: crate::general::StorageFormat::default(),
         }
     }
 
@@ -485,34 +474,25 @@ impl LibraryHolder {
                         }
                     })
                     .filter_map(|path| {
-                        let f = std::fs::File::open(path.clone());
-                        if let Ok(mut file) = f {
-                            if let Ok(meta) = file.metadata() {
-                                let mut buffer = vec![0; meta.len() as usize];
-                                let result = file.read(&mut buffer).ok();
-                                if result.is_some() {
-                                    let asdf = LibraryHolder::load(
-                                        &buffer,
-                                        crate::general::StoragePath::LocalFilesystem(
-                                            path.to_string_lossy().to_string(),
-                                        ),
-                                    );
-                                    if let Err(e) = &asdf {
-                                        println!(
-                                            "ERROR Opening library {} {:?}",
-                                            path.to_string_lossy().to_string(),
-                                            e
-                                        );
-                                    }
-                                    asdf.ok()
-                                } else {
-                                    None
+                        Some(crate::general::StoragePath::LocalFilesystem(
+                            path.into_os_string().into_string().unwrap(),
+                        ))
+                    })
+                    .filter_map(|path| {
+                        let reader = path.reader();
+                        match reader {
+                            Ok(mut reader) => {
+                                let format = crate::general::StorageFormat::default();
+                                match format.load::<Library>(&mut reader) {
+                                    Ok(lib) => Some(LibraryHolder {
+                                        library: lib,
+                                        path: Some(path),
+                                        format,
+                                    }),
+                                    Err(_e) => None,
                                 }
-                            } else {
-                                None
                             }
-                        } else {
-                            None
+                            Err(_e) => None,
                         }
                     })
                     .collect::<Vec<_>>();

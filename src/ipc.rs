@@ -1,4 +1,4 @@
-///! Defines things used for ipc
+//! Defines things used for ipc
 
 /// Messages that can be sent between processes
 #[derive(serde::Serialize, serde::Deserialize, Debug)]

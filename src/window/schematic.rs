@@ -1,7 +1,5 @@
 //! The schematic window is used to view and manipulate an electronic schematic.
 
-use std::io::Read;
-
 use egui_multiwin::egui_glow::EguiGlow;
 use egui_multiwin::{
     egui,
@@ -9,15 +7,15 @@ use egui_multiwin::{
     tracked_window::{RedrawResponse, TrackedWindow},
 };
 
-use crate::schematic::{MouseMode, SchematicAction, SchematicHolder, SchematicWidget};
+use crate::schematic::{MouseMode, Schematic, SchematicAction, SchematicHolder, SchematicWidget};
 use crate::MyApp;
 
 /// Defines messages that can some from other threads
 enum Message {
-    ///The schematic is being saved to disk with the specified filename
-    SaveSchematicName(String),
-    ///The schematic is being loaded from disk with the specified filename
-    LoadSchematicName(String),
+    ///The schematic is being saved
+    SaveSchematicName(crate::general::StoragePath),
+    ///The schematic is being loaded
+    LoadSchematicName(crate::general::StoragePath, crate::general::StorageFormat),
 }
 
 /// The window structure
@@ -93,19 +91,31 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                         }
                     }
                 }
-                Message::LoadSchematicName(n) => {
-                    let f = std::fs::File::open(&n);
-                    if let Ok(mut f) = f {
-                        let meta = f.metadata();
-                        if let Ok(meta) = meta {
-                            let mut buffer = vec![0; meta.len() as usize];
-                            let result = f.read(&mut buffer);
-                            if let Ok(_result) = result {
-                                c.schematic = SchematicHolder::load(n, &buffer);
-                            }
+                Message::LoadSchematicName(n, format) => match n.reader() {
+                    Ok(mut reader) => match format.load::<Schematic>(&mut reader) {
+                        Ok(sch) => {
+                            c.schematic = Some(SchematicHolder {
+                                schematic: sch,
+                                schematic_log: undo::Record::new(),
+                                schematic_was_saved: false,
+                                path: Some(n),
+                                format,
+                            });
                         }
+                        Err(e) => {
+                            let _ = native_dialog::MessageDialog::new()
+                                .set_title("Failed to open schematic")
+                                .set_text(&e.to_string())
+                                .show_alert();
+                        }
+                    },
+                    Err(e) => {
+                        let _ = native_dialog::MessageDialog::new()
+                            .set_title("Failed to open schematic")
+                            .set_text(&e.to_string())
+                            .show_alert();
                     }
-                }
+                },
             }
         }
 
@@ -148,7 +158,10 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                 fname.set_extension("urf");
                                 message_sender
                                     .send(Message::LoadSchematicName(
-                                        fname.into_os_string().into_string().unwrap(),
+                                        crate::general::StoragePath::LocalFilesystem(
+                                            fname.into_os_string().into_string().unwrap(),
+                                        ),
+                                        crate::general::StorageFormat::default(),
                                     ))
                                     .ok();
                             }
@@ -162,7 +175,8 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                         if let Some(s) = &mut c.schematic {
                             if s.has_path() {
                                 if let Err(e) = s.save() {
-                                    let s: String = format!("Unable to save file {:?}", e);
+                                    let s: String =
+                                        format!("Unable to save file {}", e.to_string());
                                     native_dialog::MessageDialog::new()
                                         .set_type(native_dialog::MessageType::Error)
                                         .set_title("ERROR")
@@ -184,7 +198,9 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                         fname.set_extension("urf");
                                         message_sender
                                             .send(Message::SaveSchematicName(
-                                                fname.into_os_string().into_string().unwrap(),
+                                                crate::general::StoragePath::LocalFilesystem(
+                                                    fname.into_os_string().into_string().unwrap(),
+                                                ),
                                             ))
                                             .ok();
                                     }

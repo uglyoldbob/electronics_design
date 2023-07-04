@@ -2,9 +2,7 @@
 
 use egui_multiwin::egui;
 
-use std::io::Write;
-
-use crate::symbol::Symbol;
+use crate::{general::StoragePath, symbol::Symbol};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[non_exhaustive]
@@ -48,6 +46,8 @@ pub struct Page {
 pub struct Schematic {
     /// The list of pages for the schematic
     pub pages: Vec<Page>,
+    /// The name of the schematic
+    name: String,
 }
 
 /// Defines the mode for mouse interaction for schematics
@@ -85,18 +85,10 @@ impl Schematic {
             texts: t,
         };
         p.push(page);
-        Self { pages: p }
-    }
-
-    /// Save the schematic to the path specified, returns true when the saving occurred
-    pub fn save(&self, path: &String) -> Result<(), std::io::Error> {
-        let d = bincode::serialize(self).unwrap();
-        let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(path)?;
-        file.write_all(&d)?;
-        Ok(())
+        Self {
+            pages: p,
+            name: "Example Schematic".to_string(),
+        }
     }
 }
 
@@ -382,8 +374,10 @@ pub struct SchematicHolder {
     pub schematic_log: undo::Record<SchematicAction>,
     /// Flag that determines if the schematic has been saved
     pub schematic_was_saved: bool,
-    /// The path where the schematic is saved. This may become Option<PathEnum> in the future, where PathEnum defines the many options/places to save data
-    path: Option<String>,
+    /// The path where the schematic is saved.
+    pub path: Option<StoragePath>,
+    /// The file format to save the object in
+    pub format: crate::general::StorageFormat,
 }
 
 impl SchematicHolder {
@@ -396,13 +390,14 @@ impl SchematicHolder {
             schematic_log: rec,
             schematic_was_saved: true,
             path: None,
+            format: crate::general::StorageFormat::default(),
         }
     }
 
     /// Retrieve the name of the schematic
     pub fn name(&self) -> String {
-        if let Some(p) = &self.path {
-            p.to_owned()
+        if self.path.is_some() {
+            self.schematic.name.clone()
         } else {
             "Unsaved schematic".to_string()
         }
@@ -419,33 +414,17 @@ impl SchematicHolder {
     }
 
     /// Set the path for the schematic when saving
-    pub fn set_path(&mut self, p: String) {
+    pub fn set_path(&mut self, p: StoragePath) {
         self.path = Some(p);
     }
 
-    /// Save the schematic information to the previously configured path
-    pub fn save(&mut self) -> Result<(), std::io::Error> {
-        let e = self.schematic.save(self.path.as_ref().unwrap());
-        if e.is_ok() {
-            self.schematic_log.set_saved(true);
+    /// Save the schematic information to the previously configured path. Will return ok if no path is set
+    pub fn save(&mut self) -> Result<(), crate::general::StorageSaveError> {
+        if let Some(path) = &self.path {
+            let mut writer = path.writer()?;
+            return Ok(self.format.save(&mut writer, &self.schematic)?);
         }
-        e
-    }
-
-    /// Load a schematic from the specified location
-    pub fn load(path: String, buffer: &[u8]) -> Option<Self> {
-        let sch = bincode::deserialize::<Schematic>(buffer);
-        if let Ok(sch) = sch {
-            let rec = undo::Record::new();
-            Some(Self {
-                schematic: sch,
-                schematic_log: rec,
-                schematic_was_saved: false,
-                path: Some(path),
-            })
-        } else {
-            None
-        }
+        Ok(())
     }
 
     /// A function that determines if the status of changes made has changed. If it has, then the closure specified is run

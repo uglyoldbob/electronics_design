@@ -37,6 +37,7 @@ fn main() {
         bincode::serialize_into(ipc_sender, &ipc::IpcMessage::NewSchematic).unwrap();
     } else {
         drop(instance);
+        /// The name of the main executable
         const NAME: &str = if cfg!(target_os = "windows") {
             "./electronics_design.exe"
         } else {
