@@ -17,10 +17,11 @@ pub struct Pin {
 
 impl Pin {
     fn draw(&self, zoom: f32, pntr: &egui::Painter, pos: egui::Pos2) -> Vec<egui::Rect> {
+        let mult = crate::general::Length::Inches(0.1).get_screen(zoom);
         let pos2 = pos
             + egui::Vec2 {
-                x: self.rotation.to_radians().sin() * 20.0 * zoom,
-                y: self.rotation.to_radians().cos() * 20.0 * zoom,
+                x: self.rotation.to_radians().sin() * mult,
+                y: self.rotation.to_radians().cos() * mult,
             };
         pntr.line_segment(
             [pos, pos2],
@@ -30,9 +31,11 @@ impl Pin {
             },
         );
         let rect = egui::Rect {
-            min: (pos - egui::pos2(zoom * 5.0, zoom * 5.0)).to_pos2(),
-            max: (pos + egui::vec2(zoom * 5.0, zoom * 5.0)),
+            min: (pos - crate::general::Coordinates::Inches(0.025, -0.025).get_pos2(zoom)).to_pos2(),
+            max: (pos + crate::general::Coordinates::Inches(0.025, -0.025).get_pos2(zoom).to_vec2()),
         };
+        println!("Line is {:?} {:?}", pos, pos2);
+        println!("Rect box is {} {} {:?} {:?}", mult, zoom, pos, rect);
         pntr.rect_stroke(
             rect,
             0.0,
@@ -263,7 +266,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             let pos = t.location.get_pos2(*self.zoom).to_vec2();
             let align = egui::Align2::LEFT_TOP;
             let font = egui::FontId {
-                size: 24.0 * *self.zoom,
+                size: t.size.get_screen(*self.zoom),
                 family: egui::FontFamily::Monospace,
             };
             let temp = pos.to_pos2() + *self.origin;
@@ -369,6 +372,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                                 text: "New text".to_string(),
                                 location: crate::general::Coordinates::from_pos2(pos2, *self.zoom),
                                 color: color.to_srgba_unmultiplied(),
+                                size: crate::general::Length::Inches(0.2),
                             },
                         });
                     } else {
@@ -377,7 +381,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             egui::Align2::LEFT_TOP,
                             "New text".to_string(),
                             egui::FontId {
-                                size: 24.0 * *self.zoom,
+                                size: crate::general::Length::Inches(0.2).get_screen(*self.zoom),
                                 family: egui::FontFamily::Monospace,
                             },
                             color,

@@ -14,6 +14,8 @@ pub struct TextOnPage {
     pub location: crate::general::Coordinates,
     /// The color for the text. See [egui::Color32] for the `to_srgba_unmultiplied` function
     pub color: [u8; 4],
+    /// The size of the text in physical dimensions
+    pub size: crate::general::Length,
 }
 
 impl TextOnPage {
@@ -69,11 +71,13 @@ impl Schematic {
                 text: "demo text".to_string(),
                 location: crate::general::Coordinates::Inches(0.0, 0.0),
                 color: egui_multiwin::egui::Color32::RED.to_srgba_unmultiplied(),
+                size: crate::general::Length::Inches(0.2),
             },
             TextOnPage {
                 text: "moredemo text".to_string(),
                 location: crate::general::Coordinates::Inches(1.0, 1.0),
                 color: egui_multiwin::egui::Color32::BLUE.to_srgba_unmultiplied(),
+                size: crate::general::Length::Inches(0.2),
             },
         ];
         let page = Page {
@@ -503,6 +507,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                             text: "New text".to_string(),
                             location: crate::general::Coordinates::from_pos2(pos2.to_pos2(), 1.0),
                             color: color.to_srgba_unmultiplied(),
+                            size: crate::general::Length::Inches(0.2),
                         },
                     });
                 } else {
@@ -511,7 +516,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         egui::Align2::LEFT_TOP,
                         "New text".to_string(),
                         egui::FontId {
-                            size: 24.0,
+                            size: crate::general::Length::Inches(0.2).get_screen(1.0),
                             family: egui::FontFamily::Monospace,
                         },
                         color,

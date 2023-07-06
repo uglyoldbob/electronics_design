@@ -46,7 +46,7 @@ impl Library {
                 mm: MouseMode::Selection,
                 origin: egui::vec2(0.0, 0.0),
                 recenter: false,
-                zoom: 1.0,
+                zoom: 115.0,
                 pin_angle: 0.0,
             }),
             builder: egui_multiwin::winit::window::WindowBuilder::new()

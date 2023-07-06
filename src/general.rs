@@ -342,10 +342,10 @@ impl Length {
         }
     }
 
-    pub fn get_screen(&self) -> f32 {
+    pub fn get_screen(&self, zoom: f32) -> f32 {
         match self {
-            Self::Inches(i) => *i,
-            Self::Millimeters(mm) => mm / 25.4,
+            Self::Inches(i) => *i * zoom,
+            Self::Millimeters(mm) => zoom * *mm / 25.4,
         }
     }
 }
