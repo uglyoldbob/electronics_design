@@ -37,6 +37,7 @@ fn main() {
         schematic: None,
         libraries: HashMap::new(),
         library_log: undo::Record::new(),
+        units: general::DisplayMode::Inches,
         dirs,
         args,
     };
@@ -134,6 +135,8 @@ pub struct MyApp {
     dirs: Option<directories::ProjectDirs>,
     /// The command line arguments to the program
     args: Vec<String>,
+    /// The units to display and modify for everything
+    units: general::DisplayMode,
 }
 
 impl egui_multiwin::multi_window::CommonEventHandler<MyApp, ipc::IpcMessage> for MyApp {

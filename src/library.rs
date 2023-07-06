@@ -30,10 +30,8 @@ pub enum LibraryAction {
         symname: String,
         /// The text number
         textnum: usize,
-        /// The delta x to move by
-        dx: f32,
-        /// The delta y to move by
-        dy: f32,
+        /// The delta to move by
+        delta: crate::general::Coordinates,
     },
     /// Create a new text
     CreateText {
@@ -86,6 +84,15 @@ pub enum LibraryAction {
         /// The name of the symbol to Delete
         symname: String,
     },
+    /// Add a pin to a symbol in the library
+    CreatePin {
+        /// The name of the library
+        libname: String,
+        /// The name of the symbol to Delete
+        symname: String,
+        /// The pin to add, must be a Some variant
+        pin: Option<crate::symbol::Pin>,
+    },
 }
 
 impl undo::Action for LibraryAction {
@@ -111,13 +118,11 @@ impl undo::Action for LibraryAction {
                 libname,
                 symname,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
                 if let Some(Some(target)) = target.get_mut(libname) {
                     if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].x += *dx;
-                        sym.texts[*textnum].y += *dy;
+                        sym.texts[*textnum].location += *delta;
                     }
                 }
             }
@@ -175,6 +180,19 @@ impl undo::Action for LibraryAction {
                         .insert(symname.clone(), SymbolDefinition::new(symname.clone()));
                 }
             }
+            LibraryAction::CreatePin {
+                libname,
+                symname,
+                pin,
+            } => {
+                if let Some(p) = pin.take() {
+                    if let Some(Some(target)) = target.get_mut(libname) {
+                        if let Some(sym) = target.library.syms.get_mut(symname) {
+                            sym.pins.push(p);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -192,13 +210,11 @@ impl undo::Action for LibraryAction {
                 libname,
                 symname,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
                 if let Some(Some(target)) = target.get_mut(libname) {
                     if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].x -= *dx;
-                        sym.texts[*textnum].y -= *dy;
+                        sym.texts[*textnum].location -= *delta;
                     }
                 }
             }
@@ -256,6 +272,17 @@ impl undo::Action for LibraryAction {
                     target.library.syms.remove(symname);
                 }
             }
+            LibraryAction::CreatePin {
+                libname,
+                symname,
+                pin,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    if let Some(sym) = target.library.syms.get_mut(symname) {
+                        *pin = sym.pins.pop();
+                    }
+                }
+            }
         }
     }
 
@@ -273,23 +300,20 @@ impl undo::Action for LibraryAction {
                 libname,
                 symname,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
                 if let LibraryAction::MoveText {
                     libname: libname2,
                     symname: symname2,
                     textnum: tn2,
-                    dx: dx2,
-                    dy: dy2,
+                    delta: delta2,
                 } = other
                 {
                     if *libname == libname2 && *symname == symname2 && *textnum == tn2 {
-                        if (*dx + dx2) < f32::EPSILON && (*dy + dy2) < f32::EPSILON {
+                        if (*delta + delta2).less_than_epsilon() {
                             undo::Merged::Annul
                         } else {
-                            *dx += dx2;
-                            *dy += dy2;
+                            *delta += delta2;
                             undo::Merged::Yes
                         }
                     } else {
@@ -297,8 +321,7 @@ impl undo::Action for LibraryAction {
                             libname: libname2,
                             symname: symname2,
                             textnum: tn2,
-                            dx: dx2,
-                            dy: dy2,
+                            delta: delta2,
                         })
                     }
                 } else {
@@ -388,6 +411,11 @@ impl undo::Action for LibraryAction {
             LibraryAction::CreateSymbol {
                 libname: _,
                 symname: _,
+            } => undo::Merged::No(other),
+            LibraryAction::CreatePin {
+                libname: _,
+                symname: _,
+                pin: _,
             } => undo::Merged::No(other),
         }
     }
@@ -489,10 +517,24 @@ impl LibraryHolder {
                                         path: Some(path),
                                         format,
                                     }),
-                                    Err(_e) => None,
+                                    Err(e) => {
+                                        println!(
+                                            "ERROR Loading library {} {}",
+                                            path.to_string(),
+                                            e.to_string()
+                                        );
+                                        None
+                                    }
                                 }
                             }
-                            Err(_e) => None,
+                            Err(e) => {
+                                println!(
+                                    "ERROR Loading library {} {}",
+                                    path.to_string(),
+                                    e.to_string()
+                                );
+                                None
+                            }
                         }
                     })
                     .collect::<Vec<_>>();

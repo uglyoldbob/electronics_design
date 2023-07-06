@@ -10,10 +10,8 @@ use crate::{general::StoragePath, symbol::Symbol};
 pub struct TextOnPage {
     /// The text to display
     pub text: String,
-    /// The x location of the text
-    pub x: f32,
-    /// The y location of the text
-    pub y: f32,
+    /// The location of the text
+    pub location: crate::general::Coordinates,
     /// The color for the text. See [egui::Color32] for the `to_srgba_unmultiplied` function
     pub color: [u8; 4],
 }
@@ -69,14 +67,12 @@ impl Schematic {
         let t = vec![
             TextOnPage {
                 text: "demo text".to_string(),
-                x: 0.0,
-                y: 0.0,
+                location: crate::general::Coordinates::Inches(0.0, 0.0),
                 color: egui_multiwin::egui::Color32::RED.to_srgba_unmultiplied(),
             },
             TextOnPage {
                 text: "moredemo text".to_string(),
-                x: 50.0,
-                y: 50.0,
+                location: crate::general::Coordinates::Inches(1.0, 1.0),
                 color: egui_multiwin::egui::Color32::BLUE.to_srgba_unmultiplied(),
             },
         ];
@@ -101,10 +97,8 @@ pub enum SchematicAction {
         pagenum: usize,
         /// The text number
         textnum: usize,
-        /// The delta x to move by
-        dx: f32,
-        /// The delta y to move by
-        dy: f32,
+        /// The delta to move by
+        delta: crate::general::Coordinates,
     },
     /// Move the text of a symbol on a schematic page by a certain amount
     MoveSymbolText {
@@ -114,10 +108,8 @@ pub enum SchematicAction {
         symbolnum: usize,
         /// The text number
         textnum: usize,
-        /// The delta x to move by
-        dx: f32,
-        /// The delta y to move by
-        dy: f32,
+        /// The delta to move by
+        delta: crate::general::Coordinates,
     },
     /// Create a new text for a schematic
     CreateText {
@@ -160,21 +152,17 @@ impl undo::Action for SchematicAction {
             SchematicAction::MoveText {
                 pagenum,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
-                target.pages[*pagenum].texts[*textnum].x += *dx;
-                target.pages[*pagenum].texts[*textnum].y += *dy;
+                target.pages[*pagenum].texts[*textnum].location += *delta;
             }
             SchematicAction::MoveSymbolText {
                 pagenum,
                 symbolnum,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
-                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].x += *dx;
-                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].y += *dy;
+                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].location += *delta;
             }
             SchematicAction::CreateText { pagenum, text } => {
                 target.pages[*pagenum].texts.push(text.clone());
@@ -203,21 +191,17 @@ impl undo::Action for SchematicAction {
             SchematicAction::MoveText {
                 pagenum,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
-                target.pages[*pagenum].texts[*textnum].x -= *dx;
-                target.pages[*pagenum].texts[*textnum].y -= *dy;
+                target.pages[*pagenum].texts[*textnum].location -= *delta;
             }
             SchematicAction::MoveSymbolText {
                 pagenum,
                 symbolnum,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
-                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].x -= *dx;
-                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].y -= *dy;
+                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].location -= *delta;
             }
             SchematicAction::CreateText { pagenum, text: _ } => {
                 target.pages[*pagenum].texts.pop();
@@ -249,22 +233,19 @@ impl undo::Action for SchematicAction {
             SchematicAction::MoveText {
                 pagenum,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
                 if let SchematicAction::MoveText {
                     pagenum: pn2,
                     textnum: tn2,
-                    dx: dx2,
-                    dy: dy2,
+                    delta: delta2,
                 } = other.clone()
                 {
                     if *pagenum == pn2 && *textnum == tn2 {
-                        if (*dx + dx2) < f32::EPSILON && (*dy + dy2) < f32::EPSILON {
+                        if (*delta + delta2).less_than_epsilon() {
                             undo::Merged::Annul
                         } else {
-                            *dx += dx2;
-                            *dy += dy2;
+                            *delta += delta2;
                             undo::Merged::Yes
                         }
                     } else {
@@ -278,23 +259,20 @@ impl undo::Action for SchematicAction {
                 pagenum,
                 symbolnum,
                 textnum,
-                dx,
-                dy,
+                delta,
             } => {
                 if let SchematicAction::MoveSymbolText {
                     pagenum: pn2,
                     symbolnum: sn2,
                     textnum: tn2,
-                    dx: dx2,
-                    dy: dy2,
+                    delta: delta2,
                 } = other
                 {
                     if *pagenum == pn2 && *symbolnum == sn2 && *textnum == tn2 {
-                        if (*dx + dx2) < f32::EPSILON && (*dy + dy2) < f32::EPSILON {
+                        if (*delta + delta2).less_than_epsilon() {
                             undo::Merged::Annul
                         } else {
-                            *dx += dx2;
-                            *dy += dy2;
+                            *delta += delta2;
                             undo::Merged::Yes
                         }
                     } else {
@@ -523,8 +501,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         pagenum: self.page,
                         text: TextOnPage {
                             text: "New text".to_string(),
-                            x: pos2.x,
-                            y: pos2.y,
+                            location: crate::general::Coordinates::from_pos2(pos2.to_pos2(), 1.0),
                             color: color.to_srgba_unmultiplied(),
                         },
                     });
@@ -544,7 +521,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
         }
 
         for (i, t) in cur_page.texts.iter().enumerate() {
-            let pos = egui::Vec2 { x: t.x, y: t.y };
+            let pos = t.location.get_pos2(1.0).to_vec2();
             let align = egui::Align2::LEFT_TOP;
             let font = egui::FontId {
                 size: 24.0,
@@ -580,8 +557,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         let a = SchematicAction::MoveText {
                             pagenum: self.page,
                             textnum: i,
-                            dx: amount.x,
-                            dy: amount.y,
+                            delta: crate::general::Coordinates::from_pos2(amount.to_pos2(), 1.0),
                         };
                         actions.push(a);
                     }
@@ -603,13 +579,13 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
 
         for sch in &mut cur_page.syms {
             for (i, t) in sch.texts.iter().enumerate() {
-                let pos = egui::Vec2 { x: t.x, y: t.y };
+                let pos = t.location.get_pos2(1.0);
                 let align = egui::Align2::LEFT_TOP;
                 let font = egui::FontId {
                     size: 24.0,
                     family: egui::FontFamily::Monospace,
                 };
-                let temp = area.left_top() + pos;
+                let temp = area.left_top() + pos.to_vec2();
                 let color = t.color();
                 let r = pntr.text(temp, align, t.text.clone(), font, color);
                 let response = ui.interact(r, egui::Id::new(42424242 + i), sense);
@@ -630,8 +606,10 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                                 pagenum: self.page,
                                 symbolnum: i,
                                 textnum: i,
-                                dx: amount.x,
-                                dy: amount.y,
+                                delta: crate::general::Coordinates::from_pos2(
+                                    amount.to_pos2(),
+                                    1.0,
+                                ),
                             };
                             actions.push(a);
                         }

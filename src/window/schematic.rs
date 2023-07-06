@@ -310,7 +310,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                         new: text,
                                     });
                                 }
-                                let mut xstr = format!("{:.4}", t.x);
+                                let mut xstr = format!("{:.4}", t.location.x());
                                 ui.horizontal(|ui| {
                                     ui.label("X ");
                                     ui.add(egui::TextEdit::singleline(&mut xstr));
@@ -319,11 +319,13 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                     actionlog.push(SchematicAction::MoveText {
                                         pagenum: *page,
                                         textnum: *textnum,
-                                        dx: x - t.x,
-                                        dy: 0.0,
+                                        delta: crate::general::Coordinates::from_pos2(
+                                            egui::pos2(x - t.location.x(), 0.0),
+                                            1.0,
+                                        ),
                                     });
                                 }
-                                let mut ystr = format!("{:.4}", t.y);
+                                let mut ystr = format!("{:.4}", t.location.y());
                                 ui.horizontal(|ui| {
                                     ui.label("Y ");
                                     ui.add(egui::TextEdit::singleline(&mut ystr));
@@ -332,8 +334,10 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                     actionlog.push(SchematicAction::MoveText {
                                         pagenum: *page,
                                         textnum: *textnum,
-                                        dx: 0.0,
-                                        dy: y - t.y,
+                                        delta: crate::general::Coordinates::from_pos2(
+                                            egui::pos2(0.0, y - t.location.y()),
+                                            1.0,
+                                        ),
                                     });
                                 }
                                 let mut color = t.color();

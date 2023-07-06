@@ -1,5 +1,7 @@
 //! This module stores general usage items.
 
+use std::ops::Sub;
+
 /// The kinds of file formats that can be used for various files that are exported
 #[derive(Clone)]
 pub enum StorageFormat {
@@ -63,6 +65,12 @@ impl StoragePath {
     pub fn display(&self) -> String {
         match self {
             StoragePath::LocalFilesystem(_) => "Local Filesystem".to_string(),
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            StoragePath::LocalFilesystem(p) => format!("Local Filesystem {}", p),
         }
     }
 }
@@ -172,6 +180,7 @@ impl StoragePath {
         match self {
             Self::LocalFilesystem(pathname) => {
                 let file = std::fs::OpenOptions::new()
+                    .truncate(true)
                     .create(true)
                     .write(true)
                     .open(pathname)?;
@@ -184,12 +193,167 @@ impl StoragePath {
     pub fn reader(&self) -> Result<impl std::io::Read, StoragePathError> {
         match self {
             Self::LocalFilesystem(pathname) => {
-                let file = std::fs::OpenOptions::new()
-                    .create(false)
-                    .write(false)
-                    .open(pathname)?;
+                let file = std::fs::OpenOptions::new().read(true).open(pathname)?;
                 Ok(file)
             }
         }
     }
+}
+
+/// Coordinates that can be used in the program
+#[derive(serde::Serialize, serde::Deserialize, Copy, Clone)]
+#[serde(tag = "type", content = "args")]
+pub enum Coordinates {
+    /// Imperial inches. Specified in fractional inches
+    Inches(f32, f32),
+    /// Metric millimeters. Units are specified in fractional millimeters
+    Millimeters(f32, f32),
+}
+
+impl std::ops::Sub for Coordinates {
+    type Output = Coordinates;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match self {
+            Self::Inches(x, y) => match rhs {
+                Self::Inches(x2, y2) => Self::Inches(x - x2, y - y2),
+                Self::Millimeters(x2, y2) => Self::Inches(x - x2 * 25.4, y - y2 * 25.4),
+            },
+            Self::Millimeters(x, y) => match rhs {
+                Self::Inches(x2, y2) => Self::Millimeters(x - x2 * 25.4, y - y2 * 25.4),
+                Self::Millimeters(x2, y2) => Self::Millimeters(x - x2, y - y2),
+            },
+        }
+    }
+}
+
+impl std::ops::AddAssign for Coordinates {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl std::ops::SubAssign for Coordinates {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+impl std::ops::Add for Coordinates {
+    type Output = Coordinates;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match self {
+            Self::Inches(x, y) => match rhs {
+                Self::Inches(x2, y2) => Self::Inches(x + x2, y + y2),
+                Self::Millimeters(x2, y2) => Self::Inches(x + x2 * 25.4, y + y2 * 25.4),
+            },
+            Self::Millimeters(x, y) => match rhs {
+                Self::Inches(x2, y2) => Self::Millimeters(x + x2 * 25.4, y + y2 * 25.4),
+                Self::Millimeters(x2, y2) => Self::Millimeters(x + x2, y + y2),
+            },
+        }
+    }
+}
+
+impl Coordinates {
+    pub fn get_mm(&self) -> (f32, f32) {
+        match self {
+            Self::Inches(x, y) => (x * 25.4, y * 25.4),
+            Self::Millimeters(x, y) => (*x, *y),
+        }
+    }
+
+    pub fn get_inches(&self) -> (f32, f32) {
+        match self {
+            Self::Inches(x, y) => (*x, *y),
+            Self::Millimeters(x, y) => (x / 25.4, y / 25.4),
+        }
+    }
+
+    pub fn from_pos2(pos2: egui_multiwin::egui::Pos2, zoom: f32) -> Self {
+        Self::Inches(pos2.x / zoom, pos2.y * -1.0 / zoom)
+    }
+
+    pub fn get_pos2(&self, zoom: f32) -> egui_multiwin::egui::Pos2 {
+        match self {
+            Self::Inches(x, y) => egui_multiwin::egui::pos2(*x * zoom, *y * -zoom),
+            Self::Millimeters(x, y) => egui_multiwin::egui::pos2(zoom * x / 25.4, zoom * y / 25.4),
+        }
+    }
+
+    pub fn less_than_epsilon(&self) -> bool {
+        match self {
+            Self::Inches(x, y) => *x < f32::EPSILON && *y < f32::EPSILON,
+            Self::Millimeters(x, y) => *x < f32::EPSILON && *y < f32::EPSILON,
+        }
+    }
+
+    pub fn changed_x(&self, p: f32) -> bool {
+        match self {
+            Self::Inches(x, y) => (*x - p).abs() > f32::EPSILON,
+            Self::Millimeters(x, y) => (*x - p).abs() > f32::EPSILON,
+        }
+    }
+
+    pub fn changed_y(&self, p: f32) -> bool {
+        match self {
+            Self::Inches(x, y) => (*y - p).abs() > f32::EPSILON,
+            Self::Millimeters(x, y) => (*y - p).abs() > f32::EPSILON,
+        }
+    }
+
+    pub fn x(&self) -> f32 {
+        match self {
+            Self::Inches(x, y) => *x,
+            Self::Millimeters(x, y) => *x,
+        }
+    }
+
+    pub fn y(&self) -> f32 {
+        match self {
+            Self::Inches(x, y) => *y,
+            Self::Millimeters(x, y) => *y,
+        }
+    }
+}
+
+/// A single dimension value of length
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub enum Length {
+    /// Imperial inches. Specified in fractional inches
+    Inches(f32),
+    /// Metric millimeters. Units are specified in fractional millimeters
+    Millimeters(f32),
+}
+
+impl Length {
+    pub fn get_mm(&self) -> f32 {
+        match self {
+            Self::Inches(i) => i * 25.4,
+            Self::Millimeters(mm) => *mm,
+        }
+    }
+
+    pub fn get_inches(&self) -> f32 {
+        match self {
+            Self::Inches(i) => *i,
+            Self::Millimeters(mm) => mm / 25.4,
+        }
+    }
+
+    pub fn get_screen(&self) -> f32 {
+        match self {
+            Self::Inches(i) => *i,
+            Self::Millimeters(mm) => mm / 25.4,
+        }
+    }
+}
+
+/// The units mode for the program
+pub enum DisplayMode {
+    /// Imperial inches
+    Inches,
+    /// Standard millimeters
+    Millimeters,
 }

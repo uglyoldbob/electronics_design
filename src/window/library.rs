@@ -30,6 +30,8 @@ pub struct Library {
     recenter: bool,
     /// The zoom factor for the widget
     zoom: f32,
+    /// The angle for new pins, in degrees
+    pin_angle: f32,
 }
 
 impl Library {
@@ -45,6 +47,7 @@ impl Library {
                 origin: egui::vec2(0.0, 0.0),
                 recenter: false,
                 zoom: 1.0,
+                pin_angle: 0.0,
             }),
             builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
@@ -196,6 +199,10 @@ impl TrackedWindow<MyApp> for Library {
                     .on_hover_ui(|ui| {
                         ui.label("Create Text mode");
                     });
+                ui.selectable_value(&mut self.mm, MouseMode::NewPin, "P")
+                    .on_hover_ui(|ui| {
+                        ui.label("Create pin");
+                    });
             });
         });
 
@@ -320,7 +327,6 @@ impl TrackedWindow<MyApp> for Library {
                                 .stick_to_right(true)
                                 .show(ui, |ui| {
                                     if self.selection.len() == 1 {
-                                        ui.label("There is a selection");
                                         let sel = &self.selection[0];
                                         let symbol = &lib.library.syms[sym];
                                         match sel {
@@ -341,35 +347,33 @@ impl TrackedWindow<MyApp> for Library {
                                                         new: text,
                                                     });
                                                 }
-                                                let mut xstr = format!("{:.4}", t.x);
+                                                let mut xstr = format!("{:.4}", t.location.x());
                                                 ui.horizontal(|ui| {
                                                     ui.label("X ");
                                                     ui.add(egui::TextEdit::singleline(&mut xstr));
                                                 });
                                                 if let Ok(x) = xstr.parse::<f32>() {
-                                                    if (x - t.x) > f32::EPSILON {
+                                                    if t.location.changed_x(x) {
                                                         actionlog.push(LibraryAction::MoveText {
                                                             libname: l.clone(),
                                                             symname: sym.clone(),
                                                             textnum: *textnum,
-                                                            dx: x - t.x,
-                                                            dy: 0.0,
+                                                            delta: crate::general::Coordinates::from_pos2(egui::pos2(x - t.location.x(), 0.0), self.zoom),
                                                         });
                                                     }
                                                 }
-                                                let mut ystr = format!("{:.4}", t.y);
+                                                let mut ystr = format!("{:.4}", t.location.y());
                                                 ui.horizontal(|ui| {
                                                     ui.label("Y ");
                                                     ui.add(egui::TextEdit::singleline(&mut ystr));
                                                 });
                                                 if let Ok(y) = ystr.parse::<f32>() {
-                                                    if (y - t.y) > f32::EPSILON {
+                                                    if t.location.changed_y(y) {
                                                         actionlog.push(LibraryAction::MoveText {
                                                             libname: l.clone(),
                                                             symname: sym.clone(),
                                                             textnum: *textnum,
-                                                            dx: 0.0,
-                                                            dy: y - t.y,
+                                                            delta: crate::general::Coordinates::from_pos2(egui::pos2(0.0, y - t.location.y()), self.zoom),
                                                         });
                                                     }
                                                 }
@@ -385,6 +389,12 @@ impl TrackedWindow<MyApp> for Library {
                                                             new: color,
                                                         },
                                                     );
+                                                }
+                                            }
+                                            SymbolWidgetSelection::Pin { pinnum } => {
+                                                if symbol.pins.len() >= (pinnum + 1) {
+                                                    let p = &symbol.pins[*pinnum];
+                                                    ui.label("Pin has properties");
                                                 }
                                             }
                                         }
@@ -421,11 +431,12 @@ impl TrackedWindow<MyApp> for Library {
                                     &mut self.origin,
                                     &mut self.zoom,
                                     self.recenter,
+                                    &mut self.pin_angle,
                                 );
                                 self.recenter = false;
                                 let resp = ui.add(sym);
                                 if resp.dragged_by(egui::PointerButton::Middle) {
-                                    self.origin += resp.drag_delta() / self.zoom;
+                                    self.origin += resp.drag_delta();
                                 }
                                 if resp.double_clicked_by(egui::PointerButton::Middle) {
                                     self.recenter = true;
