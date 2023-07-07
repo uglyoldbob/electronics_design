@@ -25,7 +25,7 @@ pub struct Library {
     /// The mouse mode for the library editor.
     mm: MouseMode,
     /// The origin for the symbol drawing
-    origin: egui::Vec2,
+    origin: crate::general::Coordinates,
     /// True when the widget should recenter
     recenter: bool,
     /// The zoom factor for the widget
@@ -44,7 +44,7 @@ impl Library {
                 selection: Vec::new(),
                 old_saved_status: false,
                 mm: MouseMode::Selection,
-                origin: egui::vec2(0.0, 0.0),
+                origin: crate::general::Coordinates::Inches(0.0, 0.0),
                 recenter: false,
                 zoom: 115.0,
                 pin_angle: 0.0,
@@ -436,7 +436,10 @@ impl TrackedWindow<MyApp> for Library {
                                 self.recenter = false;
                                 let resp = ui.add(sym);
                                 if resp.dragged_by(egui::PointerButton::Middle) {
-                                    self.origin += resp.drag_delta();
+                                    self.origin += crate::general::Coordinates::from_pos2(
+                                        resp.drag_delta().to_pos2(),
+                                        self.zoom,
+                                    );
                                 }
                                 if resp.double_clicked_by(egui::PointerButton::Middle) {
                                     self.recenter = true;

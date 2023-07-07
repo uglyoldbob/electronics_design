@@ -38,11 +38,12 @@ impl Pin {
         );
         let rect = egui::Rect {
             min: (pos
-                - crate::general::Coordinates::Inches(0.025, -0.025).get_pos2(zoom, zoom_center))
+                - crate::general::Coordinates::Inches(0.025, -0.025)
+                    .get_pos2(zoom, egui::pos2(0.0, 0.0)))
             .to_pos2(),
             max: (pos
                 + crate::general::Coordinates::Inches(0.025, -0.025)
-                    .get_pos2(zoom, zoom_center)
+                    .get_pos2(zoom, egui::pos2(0.0, 0.0))
                     .to_vec2()),
         };
         pntr.rect_stroke(
@@ -161,7 +162,7 @@ pub struct SymbolDefinitionWidget<'a> {
     /// The log for applying symbol modifications
     actions: &'a mut Vec<LibraryAction>,
     /// The origin modifier for panning the symbol around
-    origin: &'a mut egui::Vec2,
+    origin: &'a mut crate::general::Coordinates,
     /// The zoom factor
     zoom: &'a mut f32,
     /// The component should be recentered
@@ -177,7 +178,7 @@ impl<'a> SymbolDefinitionWidget<'a> {
         mm: &'a mut MouseMode,
         selection: &'a mut Vec<SymbolWidgetSelection>,
         actions: &'a mut Vec<LibraryAction>,
-        origin: &'a mut egui::Vec2,
+        origin: &'a mut crate::general::Coordinates,
         zoom: &'a mut f32,
         recenter: bool,
         pin_angle: &'a mut f32,
@@ -207,7 +208,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         area.max.y = ui.available_height() + area.min.y;
         let size = egui::vec2(area.max.x - area.min.x, area.max.y - area.min.y);
         if self.recenter {
-            *self.origin = area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0);
+            *self.origin = crate::general::Coordinates::Inches(0.0, 0.0);
         }
 
         let zoom_origin =
@@ -247,17 +248,19 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             width: 1.0,
             color: Color32::BLUE,
         };
+
+        let origin = self.origin.get_pos2(*self.zoom, zoom_origin);
         pntr.line_segment(
             [
-                egui::pos2(area.min.x, self.origin.y),
-                egui::pos2(area.max.x, self.origin.y),
+                egui::pos2(area.min.x, origin.y),
+                egui::pos2(area.max.x, origin.y),
             ],
             stroke,
         );
         pntr.line_segment(
             [
-                egui::pos2(self.origin.x, area.min.y),
-                egui::pos2(self.origin.x, area.max.y),
+                egui::pos2(origin.x, area.min.y),
+                egui::pos2(origin.x, area.max.y),
             ],
             stroke,
         );
@@ -275,13 +278,13 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         }
 
         for (i, t) in self.sym.sym.texts.iter().enumerate() {
-            let pos = t.location.get_pos2(*self.zoom, zoom_origin).to_vec2();
+            let pos = t.location.get_pos2(*self.zoom, origin).to_vec2();
             let align = egui::Align2::LEFT_TOP;
             let font = egui::FontId {
                 size: t.size.get_screen(*self.zoom, zoom_origin),
                 family: egui::FontFamily::Monospace,
             };
-            let temp = pos.to_pos2() + *self.origin;
+            let temp = pos.to_pos2();
             let color = t.color();
             let r = pntr.text(temp, align, t.text.clone(), font, color);
             let id = egui::Id::new(1 + i);
@@ -329,8 +332,8 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         }
 
         for (i, p) in self.sym.sym.pins.iter().enumerate() {
-            let pos = p.location.get_pos2(*self.zoom, zoom_origin).to_vec2();
-            let temp = pos + *self.origin;
+            let pos = p.location.get_pos2(*self.zoom, origin).to_vec2();
+            let temp = pos;
             let rects = p.draw(*self.zoom, zoom_origin, &pntr, temp.to_pos2());
             let response = crate::symbol::Pin::respond(ui, format!("pin {}", i), rects);
             let response = match self.mm {
@@ -371,7 +374,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
 
         let pos = ui.input(|i| i.pointer.interact_pos());
         if let Some(pos) = pos {
-            let pos2 = pos - *self.origin;
+            let pos2 = pos - zoom_origin.to_vec2();
             match self.mm {
                 MouseMode::Selection => {}
                 MouseMode::TextDrag => {}

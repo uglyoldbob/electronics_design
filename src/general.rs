@@ -281,8 +281,12 @@ impl Coordinates {
         zoom_center: egui_multiwin::egui::Pos2,
     ) -> egui_multiwin::egui::Pos2 {
         match self {
-            Self::Inches(x, y) => egui_multiwin::egui::pos2(*x * zoom, *y * -zoom),
-            Self::Millimeters(x, y) => egui_multiwin::egui::pos2(zoom * x / 25.4, -zoom * y / 25.4),
+            Self::Inches(x, y) => {
+                egui_multiwin::egui::pos2(*x * zoom, *y * -zoom) + zoom_center.to_vec2()
+            }
+            Self::Millimeters(x, y) => {
+                egui_multiwin::egui::pos2(zoom * x / 25.4, -zoom * y / 25.4) + zoom_center.to_vec2()
+            }
         }
     }
 
