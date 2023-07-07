@@ -30,3 +30,7 @@ path = "src/main.rs"
 [[bin]]
 name = "electronics_schematic"
 path = "src/main_schematic.rs"
+
+[[bin]]
+name = "electronics_library"
+path = "src/main_library.rs"

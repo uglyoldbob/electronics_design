@@ -363,7 +363,8 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                         new: text,
                                     });
                                 }
-                                let mut xstr = format!("{:.4}", t.location.x());
+                                let units = t.location.get_units(c.units);
+                                let mut xstr = format!("{:.4}", units.0);
                                 ui.horizontal(|ui| {
                                     ui.label("X ");
                                     ui.add(egui::TextEdit::singleline(&mut xstr));
@@ -373,12 +374,12 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                         pagenum: *page,
                                         textnum: *textnum,
                                         delta: crate::general::Coordinates::from_pos2(
-                                            egui::pos2(x - t.location.x(), 0.0),
+                                            egui::pos2(x - units.0, 0.0),
                                             1.0,
                                         ),
                                     });
                                 }
-                                let mut ystr = format!("{:.4}", t.location.y());
+                                let mut ystr = format!("{:.4}", units.1);
                                 ui.horizontal(|ui| {
                                     ui.label("Y ");
                                     ui.add(egui::TextEdit::singleline(&mut ystr));
@@ -388,7 +389,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                         pagenum: *page,
                                         textnum: *textnum,
                                         delta: crate::general::Coordinates::from_pos2(
-                                            egui::pos2(0.0, y - t.location.y()),
+                                            egui::pos2(0.0, units.1 - y),
                                             1.0,
                                         ),
                                     });

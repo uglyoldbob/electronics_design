@@ -113,6 +113,9 @@ fn main() {
                 let _e =
                     multi_window.add(window::schematic::SchematicWindow::request(), &event_loop);
             }
+            "library" => {
+                let _e = multi_window.add(window::library::Library::request(), &event_loop);
+            }
             _ => {
                 let _e = multi_window.add(window::library::Library::request(), &event_loop);
             }

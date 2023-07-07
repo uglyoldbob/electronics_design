@@ -270,6 +270,13 @@ impl Coordinates {
             Self::Millimeters(x, y) => (x / 25.4, y / 25.4),
         }
     }
+    /// Get coordinates according to the specified units
+    pub fn get_units(&self, units: DisplayMode) -> (f32, f32) {
+        match units {
+            DisplayMode::Inches => self.get_inches(),
+            DisplayMode::Millimeters => self.get_mm(),
+        }
+    }
     /// Get coordinates from screen position
     pub fn from_pos2(pos2: egui_multiwin::egui::Pos2, zoom: f32) -> Self {
         Self::Inches(pos2.x / zoom, pos2.y * -1.0 / zoom)
@@ -310,20 +317,6 @@ impl Coordinates {
             Self::Millimeters(_x, y) => (*y - p).abs() > f32::EPSILON,
         }
     }
-    /// Return whatever the x coordinate is. You may want either get_mm or get_inches first.
-    pub fn x(&self) -> f32 {
-        match self {
-            Self::Inches(x, _y) => *x,
-            Self::Millimeters(x, _y) => *x,
-        }
-    }
-    /// Return whatever the y coordinate is. You may want either get_mm or get_inches first.
-    pub fn y(&self) -> f32 {
-        match self {
-            Self::Inches(_x, y) => *y,
-            Self::Millimeters(_x, y) => *y,
-        }
-    }
 }
 
 /// A single dimension value of length
@@ -360,6 +353,7 @@ impl Length {
 }
 
 /// The units mode for the program
+#[derive(Copy, Clone)]
 pub enum DisplayMode {
     /// Imperial inches
     Inches,
