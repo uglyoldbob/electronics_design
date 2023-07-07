@@ -38,6 +38,8 @@ pub struct Page {
     pub syms: Vec<Symbol>,
     /// The free text items on the page
     pub texts: Vec<TextOnPage>,
+    /// The physical size of the page
+    pub size: crate::general::Coordinates,
 }
 
 impl Page {
@@ -115,6 +117,7 @@ impl Schematic {
         let page = Page {
             syms: Vec::new(),
             texts: t,
+            size: crate::general::Coordinates::Inches(11.0, 8.5),
         };
         p.push(page);
         Self {
@@ -521,6 +524,64 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
         let zoom_origin =
             (area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0)).to_pos2();
         let origin = self.origin.get_pos2(*self.zoom, zoom_origin);
+
+        ///placeholder for drawing the crosshairs at the origin
+        if false {
+            let stroke = egui_multiwin::egui::Stroke {
+                width: 1.0,
+                color: egui::Color32::BLUE,
+            };
+            pntr.line_segment(
+                [
+                    egui::pos2(area.min.x, origin.y),
+                    egui::pos2(area.max.x, origin.y),
+                ],
+                stroke,
+            );
+            pntr.line_segment(
+                [
+                    egui::pos2(origin.x, area.min.y),
+                    egui::pos2(origin.x, area.max.y),
+                ],
+                stroke,
+            );
+        }
+
+        let stroke = egui_multiwin::egui::Stroke {
+            width: 1.0,
+            color: egui::Color32::WHITE,
+        };
+        let sheet_max = cur_page
+            .size
+            .get_pos2(*self.zoom, origin);
+        pntr.line_segment(
+            [
+                egui::pos2(origin.x, origin.y),
+                egui::pos2(origin.x, sheet_max.y),
+            ],
+            stroke,
+        );
+        pntr.line_segment(
+            [
+                egui::pos2(origin.x, sheet_max.y),
+                egui::pos2(sheet_max.x, sheet_max.y),
+            ],
+            stroke,
+        );
+        pntr.line_segment(
+            [
+                egui::pos2(sheet_max.x, origin.y),
+                egui::pos2(sheet_max.x, sheet_max.y),
+            ],
+            stroke,
+        );
+        pntr.line_segment(
+            [
+                egui::pos2(origin.x, origin.y),
+                egui::pos2(sheet_max.x, origin.y),
+            ],
+            stroke,
+        );
 
         let mut actions = Vec::new();
 
