@@ -443,6 +443,10 @@ pub struct SchematicWidget<'a> {
     page: usize,
     /// The object currently selected. Will eventually become Vec<SchematicSelection>
     selection: &'a mut Option<SchematicSelection>,
+    /// The origin modifier for panning the symbol around
+    origin: &'a mut crate::general::Coordinates,
+    /// The zoom factor
+    zoom: &'a mut f32,
 }
 
 impl<'a> SchematicWidget<'a> {
@@ -451,12 +455,16 @@ impl<'a> SchematicWidget<'a> {
         sch: &'a mut SchematicHolder,
         mm: &'a mut MouseMode,
         sel: &'a mut Option<SchematicSelection>,
+        origin: &'a mut crate::general::Coordinates,
+        zoom: &'a mut f32,
     ) -> Self {
         Self {
             sch,
             page: 0,
             mm,
             selection: sel,
+            origin,
+            zoom,
         }
     }
 }
@@ -474,9 +482,13 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
         area.max.y = ui.available_height() + area.min.y;
         let size = egui::vec2(area.max.x - area.min.x, area.max.y - area.min.y);
 
-        let (pr, pntr) = ui.allocate_painter(size, sense);
+        let (mut pr, pntr) = ui.allocate_painter(size, sense);
         let cur_page = &mut self.sch.schematic.pages[self.page];
         let color = egui::Color32::RED;
+
+        let zoom_origin =
+            (area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0)).to_pos2();
+        let origin = self.origin.get_pos2(*self.zoom, zoom_origin);
 
         let mut actions = Vec::new();
 
@@ -496,6 +508,15 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             }
         }
 
+        if pr.clicked() {
+            match self.mm {
+                MouseMode::Selection => {
+                    *self.selection = None;
+                }
+                _ => {}
+            }
+        }
+
         if let MouseMode::NewText = &self.mm {
             let pos = ui.input(|i| i.pointer.interact_pos());
             if let Some(pos) = pos {
@@ -505,7 +526,10 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         pagenum: self.page,
                         text: TextOnPage {
                             text: "New text".to_string(),
-                            location: crate::general::Coordinates::from_pos2(pos2.to_pos2(), 1.0),
+                            location: crate::general::Coordinates::from_pos2(
+                                pos2.to_pos2(),
+                                *self.zoom,
+                            ),
                             color: color.to_srgba_unmultiplied(),
                             size: crate::general::Length::Inches(0.2),
                         },
@@ -517,7 +541,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         "New text".to_string(),
                         egui::FontId {
                             size: crate::general::Length::Inches(0.2)
-                                .get_screen(1.0, egui::pos2(0.0, 0.0)),
+                                .get_screen(*self.zoom, egui::pos2(0.0, 0.0)),
                             family: egui::FontFamily::Monospace,
                         },
                         color,
@@ -527,22 +551,21 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
         }
 
         for (i, t) in cur_page.texts.iter().enumerate() {
-            let pos = t.location.get_pos2(1.0, egui::pos2(0.0, 0.0)).to_vec2();
+            let pos = t.location.get_pos2(*self.zoom, origin);
             let align = egui::Align2::LEFT_TOP;
             let font = egui::FontId {
-                size: 24.0,
+                size: t.size.get_screen(*self.zoom, zoom_origin),
                 family: egui::FontFamily::Monospace,
             };
-            let temp = area.left_top() + pos;
             let color = t.color();
-            let r = pntr.text(temp, align, t.text.clone(), font, color);
+            let r = pntr.text(pos, align, t.text.clone(), font, color);
             let id = egui::Id::new(1 + i);
             let response = ui.interact(r, id, sense);
-            match self.mm {
-                MouseMode::NewText => {}
+            let response = match self.mm {
+                MouseMode::NewText => response,
                 MouseMode::Selection => {
                     if response.clicked() {
-                        println!("Clicked");
+                        println!("Clicked in selection mode");
                         *self.selection = Some(SchematicSelection::Text {
                             page: self.page,
                             textnum: i,
@@ -552,18 +575,21 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         if ui.button("Properties").clicked() {
                             ui.close_menu();
                         }
-                    });
+                    })
                 }
                 MouseMode::TextDrag => {
                     if response.clicked() {
-                        println!("Clicked");
+                        println!("Clicked in drag mode");
                     }
                     if response.dragged() {
                         let amount = response.drag_delta();
                         let a = SchematicAction::MoveText {
                             pagenum: self.page,
                             textnum: i,
-                            delta: crate::general::Coordinates::from_pos2(amount.to_pos2(), 1.0),
+                            delta: crate::general::Coordinates::from_pos2(
+                                amount.to_pos2(),
+                                *self.zoom,
+                            ),
                         };
                         actions.push(a);
                     }
@@ -571,9 +597,10 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         if ui.button("Properties").clicked() {
                             ui.close_menu();
                         }
-                    });
+                    })
                 }
-            }
+            };
+            pr = pr.union(response);
         }
 
         for a in actions {
@@ -585,7 +612,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
 
         for sch in &mut cur_page.syms {
             for (i, t) in sch.texts.iter().enumerate() {
-                let pos = t.location.get_pos2(1.0, egui::pos2(0.0, 0.0));
+                let pos = t.location.get_pos2(*self.zoom, egui::pos2(0.0, 0.0));
                 let align = egui::Align2::LEFT_TOP;
                 let font = egui::FontId {
                     size: 24.0,
@@ -614,7 +641,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                                 textnum: i,
                                 delta: crate::general::Coordinates::from_pos2(
                                     amount.to_pos2(),
-                                    1.0,
+                                    *self.zoom,
                                 ),
                             };
                             actions.push(a);
@@ -628,16 +655,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             self.sch.schematic_log.apply(&mut self.sch.schematic, a);
         }
 
-        if pr.clicked() {
-            match self.mm {
-                MouseMode::Selection => {
-                    *self.selection = None;
-                }
-                _ => {}
-            }
-        }
-
-        pr.context_menu(|ui| {
+        let pr = pr.context_menu(|ui| {
             if ui.button("Do a thing").clicked() {
                 ui.close_menu();
             }
@@ -654,6 +672,6 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 focusable: true,
             },
         );
-        response
+        pr.union(response)
     }
 }

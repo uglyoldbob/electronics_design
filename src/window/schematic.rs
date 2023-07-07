@@ -31,6 +31,10 @@ pub struct SchematicWindow {
     ),
     /// The mouse mode for the schematic editor.
     mm: MouseMode,
+    /// The origin for the symbol drawing
+    origin: crate::general::Coordinates,
+    /// The zoom factor for the widget
+    zoom: f32,
 }
 
 impl SchematicWindow {
@@ -42,6 +46,8 @@ impl SchematicWindow {
                 selection: None,
                 message_channel: std::sync::mpsc::channel(),
                 mm: MouseMode::Selection,
+                origin: crate::general::Coordinates::Inches(0.0, 0.0),
+                zoom: 115.0,
             }),
             builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
@@ -363,8 +369,29 @@ impl TrackedWindow<MyApp> for SchematicWindow {
 
         egui::CentralPanel::default().show(&egui.egui_ctx, |ui| {
             if let Some(sch) = &mut c.schematic {
-                let sch = SchematicWidget::new(sch, &mut self.mm, &mut self.selection);
-                ui.add(sch);
+                let sch = SchematicWidget::new(
+                    sch,
+                    &mut self.mm,
+                    &mut self.selection,
+                    &mut self.origin,
+                    &mut self.zoom,
+                );
+                let resp = ui.add(sch);
+                if resp.dragged_by(egui::PointerButton::Middle) {
+                    self.origin += crate::general::Coordinates::from_pos2(
+                        resp.drag_delta().to_pos2(),
+                        self.zoom,
+                    );
+                }
+                if resp.double_clicked_by(egui::PointerButton::Middle) {
+                    //self.recenter = true;
+                }
+                if resp.hovered() {
+                    let scroll = ui.input(|i| i.scroll_delta);
+                    if scroll.y.abs() > f32::EPSILON {
+                        self.zoom *= f32::powf(1.0025, scroll.y);
+                    }
+                }
             }
         });
 

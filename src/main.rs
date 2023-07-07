@@ -118,7 +118,7 @@ fn main() {
             }
         }
     } else {
-        let _e = multi_window.add(window::library::Library::request(), &event_loop);
+        let _e = multi_window.add(window::schematic::SchematicWindow::request(), &event_loop);
     }
     multi_window.run(event_loop, ac);
 }
