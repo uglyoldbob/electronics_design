@@ -121,6 +121,7 @@ impl StorageLoadError {
 }
 
 /// The kinds of errors that can occur connecting to a storage path
+#[derive(Debug)]
 pub enum StoragePathError {
     /// A generic filesystem error
     IoError(std::io::Error),

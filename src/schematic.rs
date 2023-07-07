@@ -40,6 +40,37 @@ pub struct Page {
     pub texts: Vec<TextOnPage>,
 }
 
+impl Page {
+    pub fn draw_on(&self, layer: printpdf::PdfLayerReference) {
+        let points1 = vec![
+            (
+                printpdf::Point::new(printpdf::Mm(10.0), printpdf::Mm(10.0)),
+                false,
+            ),
+            (
+                printpdf::Point::new(printpdf::Mm(10.0), printpdf::Mm(20.0)),
+                false,
+            ),
+            (
+                printpdf::Point::new(printpdf::Mm(30.0), printpdf::Mm(20.0)),
+                false,
+            ),
+            (
+                printpdf::Point::new(printpdf::Mm(30.0), printpdf::Mm(10.0)),
+                false,
+            ),
+        ];
+        let line = printpdf::Line {
+            points: points1,
+            is_closed: true,
+            has_fill: true,
+            has_stroke: true,
+            is_clipping_path: false,
+        };
+        layer.add_shape(line);
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 #[non_exhaustive]
 /// Represents an entire electronic schematic

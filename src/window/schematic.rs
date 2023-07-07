@@ -16,6 +16,8 @@ enum Message {
     SaveSchematicName(crate::general::StoragePath),
     ///The schematic is being loaded
     LoadSchematicName(crate::general::StoragePath, crate::general::StorageFormat),
+    /// Create a pdf of the current schematic
+    CreatePdf(crate::general::StoragePath),
 }
 
 /// The window structure
@@ -83,6 +85,28 @@ impl TrackedWindow<MyApp> for SchematicWindow {
 
         while let Ok(message) = self.message_channel.1.try_recv() {
             match message {
+                Message::CreatePdf(path) => {
+                    if let Some(sch) = &c.schematic {
+                        let width = printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
+                        let height = printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
+                        let (doc, page1, layer1) = printpdf::PdfDocument::new(
+                            sch.name(),
+                            width,
+                            height,
+                            "Layer 1",
+                        );
+                        if !sch.schematic.pages.is_empty() {
+                            let current_layer = doc.get_page(page1).get_layer(layer1);
+                            sch.schematic.pages[0].draw_on(current_layer);
+                        }
+                        for page in sch.schematic.pages[1..].iter() {
+                            let (pdfpage, layer) = doc.add_page(width, height, "Layer 1");
+                            let current_layer = doc.get_page(pdfpage).get_layer(layer);
+                            page.draw_on(current_layer);
+                        }
+                        let _e = doc.save(&mut std::io::BufWriter::new(path.writer().unwrap()));
+                    }
+                }
                 Message::SaveSchematicName(n) => {
                     if let Some(s) = &mut c.schematic {
                         s.set_path(n);
@@ -226,6 +250,31 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                 c.schematic = None;
                             }
                         }
+                        ui.close_menu();
+                    }
+                    if ui
+                        .add_enabled(c.schematic.is_some(), egui::Button::new("Export to pdf"))
+                        .clicked()
+                    {
+                        let f = rfd::AsyncFileDialog::new()
+                            .add_filter("Pdf", &["pdf"])
+                            .set_title("Export schematic as pdf")
+                            .save_file();
+                        let message_sender = self.message_channel.0.clone();
+                        crate::execute(async move {
+                            let file = f.await;
+                            if let Some(file) = file {
+                                let mut fname = file.path().to_path_buf();
+                                fname.set_extension("pdf");
+                                message_sender
+                                    .send(Message::CreatePdf(
+                                        crate::general::StoragePath::LocalFilesystem(
+                                            fname.into_os_string().into_string().unwrap(),
+                                        ),
+                                    ))
+                                    .ok();
+                            }
+                        });
                         ui.close_menu();
                     }
                     ui.menu_button("Recent", |ui| {
