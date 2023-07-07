@@ -87,14 +87,12 @@ impl TrackedWindow<MyApp> for SchematicWindow {
             match message {
                 Message::CreatePdf(path) => {
                     if let Some(sch) = &c.schematic {
-                        let width = printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
-                        let height = printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
-                        let (doc, page1, layer1) = printpdf::PdfDocument::new(
-                            sch.name(),
-                            width,
-                            height,
-                            "Layer 1",
-                        );
+                        let width =
+                            printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
+                        let height =
+                            printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
+                        let (doc, page1, layer1) =
+                            printpdf::PdfDocument::new(sch.name(), width, height, "Layer 1");
                         if !sch.schematic.pages.is_empty() {
                             let current_layer = doc.get_page(page1).get_layer(layer1);
                             sch.schematic.pages[0].draw_on(current_layer);

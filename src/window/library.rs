@@ -326,80 +326,84 @@ impl TrackedWindow<MyApp> for Library {
                                 .auto_shrink([false, false])
                                 .stick_to_right(true)
                                 .show(ui, |ui| {
-                                    if self.selection.len() == 1 {
-                                        let sel = &self.selection[0];
-                                        let symbol = &lib.library.syms[sym];
-                                        match sel {
-                                            SymbolWidgetSelection::Text { textnum } => {
-                                                let t = &symbol.texts[*textnum];
-                                                ui.label("Text Properties");
-                                                let mut text = t.text.clone();
-                                                ui.horizontal(|ui| {
-                                                    ui.label("Text ");
-                                                    ui.add(egui::TextEdit::singleline(&mut text));
-                                                });
-                                                if text != t.text {
-                                                    actionlog.push(LibraryAction::EditText {
-                                                        libname: l.clone(),
-                                                        symname: sym.clone(),
-                                                        textnum: *textnum,
-                                                        old: t.text.clone(),
-                                                        new: text,
+                                    match self.selection.len() {
+                                        0 => {}
+                                        1 => {
+                                            let sel = &self.selection[0];
+                                            let symbol = &lib.library.syms[sym];
+                                            match sel {
+                                                SymbolWidgetSelection::Text { textnum } => {
+                                                    let t = &symbol.texts[*textnum];
+                                                    ui.label("Text Properties");
+                                                    let mut text = t.text.clone();
+                                                    ui.horizontal(|ui| {
+                                                        ui.label("Text ");
+                                                        ui.add(egui::TextEdit::singleline(&mut text));
                                                     });
-                                                }
-                                                let mut xstr = format!("{:.4}", t.location.x());
-                                                ui.horizontal(|ui| {
-                                                    ui.label("X ");
-                                                    ui.add(egui::TextEdit::singleline(&mut xstr));
-                                                });
-                                                if let Ok(x) = xstr.parse::<f32>() {
-                                                    if t.location.changed_x(x) {
-                                                        actionlog.push(LibraryAction::MoveText {
+                                                    if text != t.text {
+                                                        actionlog.push(LibraryAction::EditText {
                                                             libname: l.clone(),
                                                             symname: sym.clone(),
                                                             textnum: *textnum,
-                                                            delta: crate::general::Coordinates::from_pos2(egui::pos2(x - t.location.x(), 0.0), self.zoom),
+                                                            old: t.text.clone(),
+                                                            new: text,
                                                         });
                                                     }
-                                                }
-                                                let mut ystr = format!("{:.4}", t.location.y());
-                                                ui.horizontal(|ui| {
-                                                    ui.label("Y ");
-                                                    ui.add(egui::TextEdit::singleline(&mut ystr));
-                                                });
-                                                if let Ok(y) = ystr.parse::<f32>() {
-                                                    if t.location.changed_y(y) {
-                                                        actionlog.push(LibraryAction::MoveText {
-                                                            libname: l.clone(),
-                                                            symname: sym.clone(),
-                                                            textnum: *textnum,
-                                                            delta: crate::general::Coordinates::from_pos2(egui::pos2(0.0, y - t.location.y()), self.zoom),
-                                                        });
+                                                    let mut xstr = format!("{:.4}", t.location.x());
+                                                    ui.horizontal(|ui| {
+                                                        ui.label("X ");
+                                                        ui.add(egui::TextEdit::singleline(&mut xstr));
+                                                    });
+                                                    if let Ok(x) = xstr.parse::<f32>() {
+                                                        if t.location.changed_x(x) {
+                                                            actionlog.push(LibraryAction::MoveText {
+                                                                libname: l.clone(),
+                                                                symname: sym.clone(),
+                                                                textnum: *textnum,
+                                                                delta: crate::general::Coordinates::from_pos2(egui::pos2(x - t.location.x(), 0.0), self.zoom),
+                                                            });
+                                                        }
+                                                    }
+                                                    let mut ystr = format!("{:.4}", t.location.y());
+                                                    ui.horizontal(|ui| {
+                                                        ui.label("Y ");
+                                                        ui.add(egui::TextEdit::singleline(&mut ystr));
+                                                    });
+                                                    if let Ok(y) = ystr.parse::<f32>() {
+                                                        if t.location.changed_y(y) {
+                                                            actionlog.push(LibraryAction::MoveText {
+                                                                libname: l.clone(),
+                                                                symname: sym.clone(),
+                                                                textnum: *textnum,
+                                                                delta: crate::general::Coordinates::from_pos2(egui::pos2(0.0, y - t.location.y()), self.zoom),
+                                                            });
+                                                        }
+                                                    }
+                                                    let mut color = t.color();
+                                                    if ui.color_edit_button_srgba(&mut color).changed()
+                                                    {
+                                                        actionlog.push(
+                                                            LibraryAction::ChangeTextColor {
+                                                                libname: l.clone(),
+                                                                symname: sym.clone(),
+                                                                textnum: *textnum,
+                                                                old: t.color(),
+                                                                new: color,
+                                                            },
+                                                        );
                                                     }
                                                 }
-                                                let mut color = t.color();
-                                                if ui.color_edit_button_srgba(&mut color).changed()
-                                                {
-                                                    actionlog.push(
-                                                        LibraryAction::ChangeTextColor {
-                                                            libname: l.clone(),
-                                                            symname: sym.clone(),
-                                                            textnum: *textnum,
-                                                            old: t.color(),
-                                                            new: color,
-                                                        },
-                                                    );
-                                                }
-                                            }
-                                            SymbolWidgetSelection::Pin { pinnum } => {
-                                                if symbol.pins.len() >= (pinnum + 1) {
-                                                    let p = &symbol.pins[*pinnum];
-                                                    ui.label("Pin has properties");
+                                                SymbolWidgetSelection::Pin { pinnum } => {
+                                                    if symbol.pins.len() >= (pinnum + 1) {
+                                                        let p = &symbol.pins[*pinnum];
+                                                        ui.label("Pin has properties");
+                                                    }
                                                 }
                                             }
                                         }
-                                    } else if self.selection.len() > 1 {
-                                        ui.label("There are multiple selections");
+                                        _ => {
+                                            ui.label("There are multiple selections");
+                                        }
                                     }
                                     ui.label("Right");
                                 });

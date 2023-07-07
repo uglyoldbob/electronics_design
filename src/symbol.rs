@@ -16,6 +16,7 @@ pub struct Pin {
 }
 
 impl Pin {
+    /// Draw the pin with a painter
     fn draw(
         &self,
         zoom: f32,
@@ -57,6 +58,7 @@ impl Pin {
         vec![rect]
     }
 
+    /// interacts with ui elements for a pin, combining them all into a single response
     fn respond(ui: &mut egui::Ui, id: String, rects: Vec<egui::Rect>) -> egui::Response {
         let mut resp = ui.interact(
             rects[0],

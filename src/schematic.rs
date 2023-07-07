@@ -41,6 +41,7 @@ pub struct Page {
 }
 
 impl Page {
+    /// Draw the page on the given pdf layer
     pub fn draw_on(&self, layer: printpdf::PdfLayerReference) {
         let points1 = vec![
             (

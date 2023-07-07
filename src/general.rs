@@ -1,7 +1,5 @@
 //! This module stores general usage items.
 
-use std::ops::Sub;
-
 /// The kinds of file formats that can be used for various files that are exported
 #[derive(Clone)]
 pub enum StorageFormat {
@@ -61,13 +59,13 @@ pub enum StoragePath {
 }
 
 impl StoragePath {
-    /// Convert the storage path to a user viewable representation of the option
+    /// Convert the storage path to a user viewable representation of the option. Used to display the kinds of options available to users.
     pub fn display(&self) -> String {
         match self {
             StoragePath::LocalFilesystem(_) => "Local Filesystem".to_string(),
         }
     }
-
+    /// Convert the storage path to a string that represents the entire path
     pub fn to_string(&self) -> String {
         match self {
             StoragePath::LocalFilesystem(p) => format!("Local Filesystem {}", p),
@@ -258,24 +256,25 @@ impl std::ops::Add for Coordinates {
 }
 
 impl Coordinates {
+    /// Get the coordinates in millimeters
     pub fn get_mm(&self) -> (f32, f32) {
         match self {
             Self::Inches(x, y) => (x * 25.4, y * 25.4),
             Self::Millimeters(x, y) => (*x, *y),
         }
     }
-
+    /// Get the coordinates in inches
     pub fn get_inches(&self) -> (f32, f32) {
         match self {
             Self::Inches(x, y) => (*x, *y),
             Self::Millimeters(x, y) => (x / 25.4, y / 25.4),
         }
     }
-
+    /// Get coordinates from screen position
     pub fn from_pos2(pos2: egui_multiwin::egui::Pos2, zoom: f32) -> Self {
         Self::Inches(pos2.x / zoom, pos2.y * -1.0 / zoom)
     }
-
+    /// Convert coordinates to screen position in pixels
     pub fn get_pos2(
         &self,
         zoom: f32,
@@ -290,39 +289,39 @@ impl Coordinates {
             }
         }
     }
-
+    /// Are both coordinates effectively 0?
     pub fn less_than_epsilon(&self) -> bool {
         match self {
             Self::Inches(x, y) => *x < f32::EPSILON && *y < f32::EPSILON,
             Self::Millimeters(x, y) => *x < f32::EPSILON && *y < f32::EPSILON,
         }
     }
-
+    /// Did the x value change at all from the given value?
     pub fn changed_x(&self, p: f32) -> bool {
         match self {
-            Self::Inches(x, y) => (*x - p).abs() > f32::EPSILON,
-            Self::Millimeters(x, y) => (*x - p).abs() > f32::EPSILON,
+            Self::Inches(x, _y) => (*x - p).abs() > f32::EPSILON,
+            Self::Millimeters(x, _y) => (*x - p).abs() > f32::EPSILON,
         }
     }
-
+    /// Did the y value change at all from the given value?
     pub fn changed_y(&self, p: f32) -> bool {
         match self {
-            Self::Inches(x, y) => (*y - p).abs() > f32::EPSILON,
-            Self::Millimeters(x, y) => (*y - p).abs() > f32::EPSILON,
+            Self::Inches(_x, y) => (*y - p).abs() > f32::EPSILON,
+            Self::Millimeters(_x, y) => (*y - p).abs() > f32::EPSILON,
         }
     }
-
+    /// Return whatever the x coordinate is. You may want either get_mm or get_inches first.
     pub fn x(&self) -> f32 {
         match self {
-            Self::Inches(x, y) => *x,
-            Self::Millimeters(x, y) => *x,
+            Self::Inches(x, _y) => *x,
+            Self::Millimeters(x, _y) => *x,
         }
     }
-
+    /// Return whatever the y coordinate is. You may want either get_mm or get_inches first.
     pub fn y(&self) -> f32 {
         match self {
-            Self::Inches(x, y) => *y,
-            Self::Millimeters(x, y) => *y,
+            Self::Inches(_x, y) => *y,
+            Self::Millimeters(_x, y) => *y,
         }
     }
 }
@@ -337,21 +336,22 @@ pub enum Length {
 }
 
 impl Length {
+    /// Get the millimeters of this length
     pub fn get_mm(&self) -> f32 {
         match self {
             Self::Inches(i) => i * 25.4,
             Self::Millimeters(mm) => *mm,
         }
     }
-
+    /// Get the inches of this length
     pub fn get_inches(&self) -> f32 {
         match self {
             Self::Inches(i) => *i,
             Self::Millimeters(mm) => mm / 25.4,
         }
     }
-
-    pub fn get_screen(&self, zoom: f32, zoom_center: egui_multiwin::egui::Pos2) -> f32 {
+    /// Convert the length to screen units
+    pub fn get_screen(&self, zoom: f32, _zoom_center: egui_multiwin::egui::Pos2) -> f32 {
         match self {
             Self::Inches(i) => *i * zoom,
             Self::Millimeters(mm) => zoom * *mm / 25.4,
