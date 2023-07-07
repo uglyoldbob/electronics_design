@@ -16,8 +16,14 @@ pub struct Pin {
 }
 
 impl Pin {
-    fn draw(&self, zoom: f32, pntr: &egui::Painter, pos: egui::Pos2) -> Vec<egui::Rect> {
-        let mult = crate::general::Length::Inches(0.1).get_screen(zoom);
+    fn draw(
+        &self,
+        zoom: f32,
+        zoom_center: egui_multiwin::egui::Pos2,
+        pntr: &egui::Painter,
+        pos: egui::Pos2,
+    ) -> Vec<egui::Rect> {
+        let mult = crate::general::Length::Inches(0.1).get_screen(zoom, zoom_center);
         let pos2 = pos
             + egui::Vec2 {
                 x: self.rotation.to_radians().sin() * mult,
@@ -31,11 +37,14 @@ impl Pin {
             },
         );
         let rect = egui::Rect {
-            min: (pos - crate::general::Coordinates::Inches(0.025, -0.025).get_pos2(zoom)).to_pos2(),
-            max: (pos + crate::general::Coordinates::Inches(0.025, -0.025).get_pos2(zoom).to_vec2()),
+            min: (pos
+                - crate::general::Coordinates::Inches(0.025, -0.025).get_pos2(zoom, zoom_center))
+            .to_pos2(),
+            max: (pos
+                + crate::general::Coordinates::Inches(0.025, -0.025)
+                    .get_pos2(zoom, zoom_center)
+                    .to_vec2()),
         };
-        println!("Line is {:?} {:?}", pos, pos2);
-        println!("Rect box is {} {} {:?} {:?}", mult, zoom, pos, rect);
         pntr.rect_stroke(
             rect,
             0.0,
@@ -201,10 +210,13 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             *self.origin = area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0);
         }
 
-        let zoom_origin = area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0);
+        let zoom_origin =
+            (area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0)).to_pos2();
 
         let (mut pr, pntr) = ui.allocate_painter(size, sense);
         let color = egui::Color32::RED;
+
+        pntr.circle_filled(zoom_origin, 2.0, egui::Color32::RED);
 
         match &self.mm {
             MouseMode::NewText | MouseMode::TextDrag => {
@@ -263,10 +275,10 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         }
 
         for (i, t) in self.sym.sym.texts.iter().enumerate() {
-            let pos = t.location.get_pos2(*self.zoom).to_vec2();
+            let pos = t.location.get_pos2(*self.zoom, zoom_origin).to_vec2();
             let align = egui::Align2::LEFT_TOP;
             let font = egui::FontId {
-                size: t.size.get_screen(*self.zoom),
+                size: t.size.get_screen(*self.zoom, zoom_origin),
                 family: egui::FontFamily::Monospace,
             };
             let temp = pos.to_pos2() + *self.origin;
@@ -317,9 +329,9 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         }
 
         for (i, p) in self.sym.sym.pins.iter().enumerate() {
-            let pos = p.location.get_pos2(*self.zoom).to_vec2();
+            let pos = p.location.get_pos2(*self.zoom, zoom_origin).to_vec2();
             let temp = pos + *self.origin;
-            let rects = p.draw(*self.zoom, &pntr, temp.to_pos2());
+            let rects = p.draw(*self.zoom, zoom_origin, &pntr, temp.to_pos2());
             let response = crate::symbol::Pin::respond(ui, format!("pin {}", i), rects);
             let response = match self.mm {
                 MouseMode::NewPin => response,
@@ -381,7 +393,8 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             egui::Align2::LEFT_TOP,
                             "New text".to_string(),
                             egui::FontId {
-                                size: crate::general::Length::Inches(0.2).get_screen(*self.zoom),
+                                size: crate::general::Length::Inches(0.2)
+                                    .get_screen(*self.zoom, zoom_origin),
                                 family: egui::FontFamily::Monospace,
                             },
                             color,
@@ -400,7 +413,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             pin: Some(pin),
                         });
                     } else {
-                        pin.draw(*self.zoom, &pntr, pos);
+                        pin.draw(*self.zoom, zoom_origin, &pntr, pos);
                     }
                 }
             }

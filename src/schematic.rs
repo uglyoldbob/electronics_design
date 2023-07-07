@@ -516,7 +516,8 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         egui::Align2::LEFT_TOP,
                         "New text".to_string(),
                         egui::FontId {
-                            size: crate::general::Length::Inches(0.2).get_screen(1.0),
+                            size: crate::general::Length::Inches(0.2)
+                                .get_screen(1.0, egui::pos2(0.0, 0.0)),
                             family: egui::FontFamily::Monospace,
                         },
                         color,
@@ -526,7 +527,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
         }
 
         for (i, t) in cur_page.texts.iter().enumerate() {
-            let pos = t.location.get_pos2(1.0).to_vec2();
+            let pos = t.location.get_pos2(1.0, egui::pos2(0.0, 0.0)).to_vec2();
             let align = egui::Align2::LEFT_TOP;
             let font = egui::FontId {
                 size: 24.0,
@@ -584,7 +585,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
 
         for sch in &mut cur_page.syms {
             for (i, t) in sch.texts.iter().enumerate() {
-                let pos = t.location.get_pos2(1.0);
+                let pos = t.location.get_pos2(1.0, egui::pos2(0.0, 0.0));
                 let align = egui::Align2::LEFT_TOP;
                 let font = egui::FontId {
                     size: 24.0,

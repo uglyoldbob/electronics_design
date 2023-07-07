@@ -275,10 +275,14 @@ impl Coordinates {
         Self::Inches(pos2.x / zoom, pos2.y * -1.0 / zoom)
     }
 
-    pub fn get_pos2(&self, zoom: f32) -> egui_multiwin::egui::Pos2 {
+    pub fn get_pos2(
+        &self,
+        zoom: f32,
+        zoom_center: egui_multiwin::egui::Pos2,
+    ) -> egui_multiwin::egui::Pos2 {
         match self {
             Self::Inches(x, y) => egui_multiwin::egui::pos2(*x * zoom, *y * -zoom),
-            Self::Millimeters(x, y) => egui_multiwin::egui::pos2(zoom * x / 25.4, zoom * y / 25.4),
+            Self::Millimeters(x, y) => egui_multiwin::egui::pos2(zoom * x / 25.4, -zoom * y / 25.4),
         }
     }
 
@@ -342,7 +346,7 @@ impl Length {
         }
     }
 
-    pub fn get_screen(&self, zoom: f32) -> f32 {
+    pub fn get_screen(&self, zoom: f32, zoom_center: egui_multiwin::egui::Pos2) -> f32 {
         match self {
             Self::Inches(i) => *i * zoom,
             Self::Millimeters(mm) => zoom * *mm / 25.4,
