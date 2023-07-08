@@ -281,7 +281,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
 
         for (i, t) in self.sym.sym.texts.iter().enumerate() {
             let pos = t.location.get_pos2(*self.zoom, origin).to_vec2();
-            let align = egui::Align2::LEFT_TOP;
+            let align = egui::Align2::LEFT_BOTTOM;
             let font = egui::FontId {
                 size: t.size.get_screen(*self.zoom, zoom_origin),
                 family: egui::FontFamily::Monospace,
@@ -397,7 +397,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                     } else {
                         pntr.text(
                             pos,
-                            egui::Align2::LEFT_TOP,
+                            egui::Align2::LEFT_BOTTOM,
                             "New text".to_string(),
                             egui::FontId {
                                 size: crate::general::Length::Inches(0.2)

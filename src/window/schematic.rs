@@ -93,14 +93,17 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                             printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
                         let (doc, page1, layer1) =
                             printpdf::PdfDocument::new(sch.name(), width, height, "Layer 1");
+                        let font = doc
+                            .add_builtin_font(printpdf::BuiltinFont::Courier)
+                            .unwrap();
                         if !sch.schematic.pages.is_empty() {
                             let current_layer = doc.get_page(page1).get_layer(layer1);
-                            sch.schematic.pages[0].draw_on(current_layer);
+                            sch.schematic.pages[0].draw_on(current_layer, &font);
                         }
                         for page in sch.schematic.pages[1..].iter() {
                             let (pdfpage, layer) = doc.add_page(width, height, "Layer 1");
                             let current_layer = doc.get_page(pdfpage).get_layer(layer);
-                            page.draw_on(current_layer);
+                            page.draw_on(current_layer, &font);
                         }
                         let _e = doc.save(&mut std::io::BufWriter::new(path.writer().unwrap()));
                     }
