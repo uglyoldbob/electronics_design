@@ -360,3 +360,13 @@ pub enum DisplayMode {
     /// Standard millimeters
     Millimeters,
 }
+
+/// The various modes of interpreting colors for the system
+pub enum ColorMode {
+    /// The colors for displaying on a screen in dark mode
+    ScreenModeDark,
+    /// The colors for displaying on a screen in light mode
+    ScreenModeLight,
+    /// The colors for printing to pdf
+    PrintingMode,
+}

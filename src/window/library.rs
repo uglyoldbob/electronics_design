@@ -380,7 +380,7 @@ impl TrackedWindow<MyApp> for Library {
                                                             });
                                                         }
                                                     }
-                                                    let mut color = t.color();
+                                                    let mut color = t.color.get_color32(crate::general::ColorMode::ScreenModeDark);
                                                     if ui.color_edit_button_srgba(&mut color).changed()
                                                     {
                                                         actionlog.push(
@@ -388,8 +388,8 @@ impl TrackedWindow<MyApp> for Library {
                                                                 libname: l.clone(),
                                                                 symname: sym.clone(),
                                                                 textnum: *textnum,
-                                                                old: t.color(),
-                                                                new: color,
+                                                                old: t.color,
+                                                                new: crate::schematic::Colors::Custom(color.to_srgba_unmultiplied()),
                                                             },
                                                         );
                                                     }

@@ -34,7 +34,8 @@ impl Pin {
             [pos, pos2],
             egui::Stroke {
                 width: 2.0,
-                color: egui::Color32::WHITE,
+                color: crate::schematic::Colors::Standard
+                    .get_color32(crate::general::ColorMode::ScreenModeDark),
             },
         );
         let rect = egui::Rect {
@@ -52,7 +53,8 @@ impl Pin {
             0.0,
             egui::Stroke {
                 width: 1.0,
-                color: egui::Color32::WHITE,
+                color: crate::schematic::Colors::Standard
+                    .get_color32(crate::general::ColorMode::ScreenModeDark),
             },
         );
         vec![rect]
@@ -217,9 +219,6 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             (area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0)).to_pos2();
 
         let (mut pr, pntr) = ui.allocate_painter(size, sense);
-        let color = egui::Color32::RED;
-
-        pntr.circle_filled(zoom_origin, 2.0, egui::Color32::RED);
 
         match &self.mm {
             MouseMode::NewText | MouseMode::TextDrag => {
@@ -248,7 +247,8 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
 
         let stroke = egui_multiwin::egui::Stroke {
             width: 1.0,
-            color: Color32::BLUE,
+            color: crate::schematic::Colors::Standard
+                .get_color32(crate::general::ColorMode::ScreenModeDark),
         };
 
         let origin = self.origin.get_pos2(*self.zoom, zoom_origin);
@@ -287,7 +287,9 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                 family: egui::FontFamily::Monospace,
             };
             let temp = pos.to_pos2();
-            let color = t.color();
+            let color = t
+                .color
+                .get_color32(crate::general::ColorMode::ScreenModeDark);
             let r = pntr.text(temp, align, t.text.clone(), font, color);
             let id = egui::Id::new(1 + i);
             let response = ui.interact(r, id, sense);
@@ -388,7 +390,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             text: TextOnPage {
                                 text: "New text".to_string(),
                                 location: crate::general::Coordinates::from_pos2(pos2, *self.zoom),
-                                color: color.to_srgba_unmultiplied(),
+                                color: crate::schematic::Colors::Standard,
                                 size: crate::general::Length::Inches(0.2),
                             },
                         });
@@ -402,7 +404,8 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                                     .get_screen(*self.zoom, zoom_origin),
                                 family: egui::FontFamily::Monospace,
                             },
-                            color,
+                            crate::schematic::Colors::Standard
+                                .get_color32(crate::general::ColorMode::ScreenModeDark),
                         );
                     }
                 }

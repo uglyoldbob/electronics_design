@@ -4,6 +4,37 @@ use egui_multiwin::egui;
 
 use crate::{general::StoragePath, symbol::Symbol};
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq)]
+#[serde(tag = "type", content = "args")]
+#[non_exhaustive]
+/// The kinds of colors to use on a schematic
+pub enum Colors {
+    /// The standard color for visibility
+    Standard,
+    /// The color for the paper border
+    Border,
+    /// A custom color. See [egui::Color32] for the `to_srgba_unmultiplied` function
+    Custom([u8; 4]),
+}
+
+impl Colors {
+    pub fn get_color32(&self, mode: crate::general::ColorMode) -> egui::Color32 {
+        match self {
+            Colors::Standard => match mode {
+                crate::general::ColorMode::ScreenModeDark => egui::Color32::from_rgb(255, 255, 255),
+                crate::general::ColorMode::ScreenModeLight => egui::Color32::from_rgb(0, 0, 0),
+                crate::general::ColorMode::PrintingMode => egui::Color32::from_rgb(0, 0, 0),
+            },
+            Colors::Border => match mode {
+                crate::general::ColorMode::ScreenModeDark => egui::Color32::from_rgb(0, 0, 255),
+                crate::general::ColorMode::ScreenModeLight => egui::Color32::from_rgb(0, 0, 255),
+                crate::general::ColorMode::PrintingMode => egui::Color32::from_rgb(255, 255, 255),
+            },
+            Colors::Custom(c) => egui::Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]),
+        }
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[non_exhaustive]
 /// Represents free text anywhere on a page or symbol
@@ -12,22 +43,10 @@ pub struct TextOnPage {
     pub text: String,
     /// The location of the text
     pub location: crate::general::Coordinates,
-    /// The color for the text. See [egui::Color32] for the `to_srgba_unmultiplied` function
-    pub color: [u8; 4],
+    /// The color for the text.
+    pub color: Colors,
     /// The size of the text in physical dimensions
     pub size: crate::general::Length,
-}
-
-impl TextOnPage {
-    /// Builds a color for the text, merely a convenience function
-    pub fn color(&self) -> egui::Color32 {
-        egui::Color32::from_rgba_unmultiplied(
-            self.color[0],
-            self.color[1],
-            self.color[2],
-            self.color[3],
-        )
-    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -104,13 +123,13 @@ impl Schematic {
             TextOnPage {
                 text: "demo text".to_string(),
                 location: crate::general::Coordinates::Inches(0.0, 0.0),
-                color: egui_multiwin::egui::Color32::RED.to_srgba_unmultiplied(),
+                color: Colors::Standard,
                 size: crate::general::Length::Inches(0.2),
             },
             TextOnPage {
                 text: "moredemo text".to_string(),
                 location: crate::general::Coordinates::Inches(1.0, 1.0),
-                color: egui_multiwin::egui::Color32::BLUE.to_srgba_unmultiplied(),
+                color: Colors::Standard,
                 size: crate::general::Length::Inches(0.2),
             },
         ];
@@ -175,9 +194,9 @@ pub enum SchematicAction {
         /// The text number
         textnum: usize,
         /// The old text
-        old: egui::Color32,
+        old: Colors,
         /// The new text
-        new: egui::Color32,
+        new: Colors,
     },
 }
 
@@ -220,7 +239,7 @@ impl undo::Action for SchematicAction {
                 old: _,
                 new,
             } => {
-                target.pages[*pagenum].texts[*textnum].color = new.to_srgba_unmultiplied();
+                target.pages[*pagenum].texts[*textnum].color = *new;
             }
         }
     }
@@ -259,7 +278,7 @@ impl undo::Action for SchematicAction {
                 old,
                 new: _,
             } => {
-                target.pages[*pagenum].texts[*textnum].color = old.to_srgba_unmultiplied();
+                target.pages[*pagenum].texts[*textnum].color = *old;
             }
         }
     }
@@ -519,13 +538,12 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
 
         let (mut pr, pntr) = ui.allocate_painter(size, sense);
         let cur_page = &mut self.sch.schematic.pages[self.page];
-        let color = egui::Color32::RED;
 
         let zoom_origin =
             (area.left_top().to_vec2() + egui::vec2(size.x / 2.0, size.y / 2.0)).to_pos2();
         let origin = self.origin.get_pos2(*self.zoom, zoom_origin);
 
-        ///placeholder for drawing the crosshairs at the origin
+        //placeholder for drawing the crosshairs at the origin
         if false {
             let stroke = egui_multiwin::egui::Stroke {
                 width: 1.0,
@@ -549,11 +567,9 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
 
         let stroke = egui_multiwin::egui::Stroke {
             width: 1.0,
-            color: egui::Color32::WHITE,
+            color: Colors::Border.get_color32(crate::general::ColorMode::ScreenModeDark),
         };
-        let sheet_max = cur_page
-            .size
-            .get_pos2(*self.zoom, origin);
+        let sheet_max = cur_page.size.get_pos2(*self.zoom, origin);
         pntr.line_segment(
             [
                 egui::pos2(origin.x, origin.y),
@@ -623,7 +639,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                                 pos2.to_pos2(),
                                 *self.zoom,
                             ),
-                            color: color.to_srgba_unmultiplied(),
+                            color: Colors::Standard,
                             size: crate::general::Length::Inches(0.2),
                         },
                     });
@@ -637,7 +653,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                                 .get_screen(*self.zoom, egui::pos2(0.0, 0.0)),
                             family: egui::FontFamily::Monospace,
                         },
-                        color,
+                        Colors::Standard.get_color32(crate::general::ColorMode::ScreenModeDark),
                     );
                 }
             }
@@ -650,7 +666,9 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 size: t.size.get_screen(*self.zoom, zoom_origin),
                 family: egui::FontFamily::Monospace,
             };
-            let color = t.color();
+            let color = t
+                .color
+                .get_color32(crate::general::ColorMode::ScreenModeDark);
             let r = pntr.text(pos, align, t.text.clone(), font, color);
             let id = egui::Id::new(1 + i);
             let response = ui.interact(r, id, sense);
@@ -712,7 +730,9 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                     family: egui::FontFamily::Monospace,
                 };
                 let temp = area.left_top() + pos.to_vec2();
-                let color = t.color();
+                let color = t
+                    .color
+                    .get_color32(crate::general::ColorMode::ScreenModeDark);
                 let r = pntr.text(temp, align, t.text.clone(), font, color);
                 let response = ui.interact(r, egui::Id::new(42424242 + i), sense);
                 match self.mm {

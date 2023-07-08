@@ -394,13 +394,17 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                         ),
                                     });
                                 }
-                                let mut color = t.color();
+                                let mut color = t
+                                    .color
+                                    .get_color32(crate::general::ColorMode::ScreenModeDark);
                                 if ui.color_edit_button_srgba(&mut color).changed() {
                                     actionlog.push(SchematicAction::ChangeTextColor {
                                         pagenum: *page,
                                         textnum: *textnum,
-                                        old: t.color(),
-                                        new: color,
+                                        old: t.color,
+                                        new: crate::schematic::Colors::Custom(
+                                            color.to_srgba_unmultiplied(),
+                                        ),
                                     });
                                 }
                             }

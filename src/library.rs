@@ -64,9 +64,9 @@ pub enum LibraryAction {
         /// The text number
         textnum: usize,
         /// The old text
-        old: egui::Color32,
+        old: crate::schematic::Colors,
         /// The new text
-        new: egui::Color32,
+        new: crate::schematic::Colors,
     },
     /// Delete a symbol from the library, symbol must be None
     DeleteSymbol {
@@ -159,7 +159,7 @@ impl undo::Action for LibraryAction {
             } => {
                 if let Some(Some(target)) = target.get_mut(libname) {
                     if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].color = new.to_srgba_unmultiplied();
+                        sym.texts[*textnum].color = *new;
                     }
                 }
             }
@@ -251,7 +251,7 @@ impl undo::Action for LibraryAction {
             } => {
                 if let Some(Some(target)) = target.get_mut(libname) {
                     if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].color = old.to_srgba_unmultiplied();
+                        sym.texts[*textnum].color = *old;
                     }
                 }
             }
