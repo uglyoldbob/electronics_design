@@ -94,7 +94,7 @@ impl Page {
             let (x, y) = text.location.get_mm();
             layer.use_text(
                 text.text.clone(),
-                text.size.get_mm().into(),
+                (text.size.get_mm() * 3.4).into(),
                 printpdf::Mm(x.into()),
                 printpdf::Mm(y.into()),
                 font,

@@ -93,9 +93,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                             printpdf::Mm(crate::general::Length::Inches(11.0).get_mm().into());
                         let (doc, page1, layer1) =
                             printpdf::PdfDocument::new(sch.name(), width, height, "Layer 1");
-                        let font = doc
-                            .add_builtin_font(printpdf::BuiltinFont::Courier)
-                            .unwrap();
+                        let font = doc.add_external_font(crate::COMPUTER_MODERN_FONT).unwrap();
                         if !sch.schematic.pages.is_empty() {
                             let current_layer = doc.get_page(page1).get_layer(layer1);
                             sch.schematic.pages[0].draw_on(current_layer, &font);

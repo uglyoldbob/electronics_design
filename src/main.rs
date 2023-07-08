@@ -7,6 +7,8 @@
     windows_subsystem = "windows"
 )] // hide console window on Windows in release
 
+const COMPUTER_MODERN_FONT: &[u8] = include_bytes!("./cmunbtl.ttf");
+
 mod main_common;
 use main_common::*;
 
