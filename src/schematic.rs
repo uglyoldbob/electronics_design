@@ -94,7 +94,7 @@ impl Page {
             let (x, y) = text.location.get_mm();
             layer.use_text(
                 text.text.clone(),
-                (text.size.get_mm() * 3.4).into(),
+                (text.size.get_mm() * 2.85).into(),
                 printpdf::Mm(x.into()),
                 printpdf::Mm(y.into()),
                 font,
@@ -138,9 +138,27 @@ impl Schematic {
             },
             TextOnPage {
                 text: "moredemo text".to_string(),
-                location: crate::general::Coordinates::Inches(1.0, 1.0),
+                location: crate::general::Coordinates::Inches(0.0, 0.2),
                 color: Colors::Standard,
-                size: crate::general::Length::Inches(0.2),
+                size: crate::general::Length::Inches(0.4),
+            },
+            TextOnPage {
+                text: "moredemo text".to_string(),
+                location: crate::general::Coordinates::Inches(0.0, 0.6),
+                color: Colors::Standard,
+                size: crate::general::Length::Inches(0.8),
+            },
+            TextOnPage {
+                text: "moredemo text".to_string(),
+                location: crate::general::Coordinates::Inches(0.0, 1.4),
+                color: Colors::Standard,
+                size: crate::general::Length::Inches(1.6),
+            },
+            TextOnPage {
+                text: "moredemo text".to_string(),
+                location: crate::general::Coordinates::Inches(0.0, 3.0),
+                color: Colors::Standard,
+                size: crate::general::Length::Inches(3.2),
             },
         ];
         let page = Page {
@@ -661,7 +679,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                         egui::FontId {
                             size: crate::general::Length::Inches(0.2)
                                 .get_screen(*self.zoom, egui::pos2(0.0, 0.0)),
-                            family: egui::FontFamily::Monospace,
+                            family: egui::FontFamily::Name("computermodern".into()),
                         },
                         Colors::Standard.get_color32(crate::general::ColorMode::ScreenModeDark),
                     );
@@ -674,7 +692,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             let align = egui::Align2::LEFT_BOTTOM;
             let font = egui::FontId {
                 size: t.size.get_screen(*self.zoom, zoom_origin),
-                family: egui::FontFamily::Monospace,
+                family: egui::FontFamily::Name("computermodern".into()),
             };
             let color = t
                 .color
@@ -736,8 +754,8 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 let pos = t.location.get_pos2(*self.zoom, egui::pos2(0.0, 0.0));
                 let align = egui::Align2::LEFT_BOTTOM;
                 let font = egui::FontId {
-                    size: 24.0,
-                    family: egui::FontFamily::Monospace,
+                    size: t.size.get_screen(*self.zoom, zoom_origin),
+                    family: egui::FontFamily::Name("computermodern".into()),
                 };
                 let temp = area.left_top() + pos.to_vec2();
                 let color = t

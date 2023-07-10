@@ -104,6 +104,9 @@ fn main() {
 
     let mut multi_window: MultiWindow<MyApp, ipc::IpcMessage> =
         egui_multiwin::multi_window::MultiWindow::new();
+    let mut fd = egui_multiwin::egui::FontData::from_static(COMPUTER_MODERN_FONT);
+    fd.tweak.y_offset_factor = 1.0/3.0;
+    multi_window.add_font("computermodern".to_string(), fd);
 
     for l in crate::library::LibraryHolder::get_user_libraries(&ac.dirs) {
         ac.libraries.insert(l.library.name.clone(), Some(l));

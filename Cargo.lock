@@ -575,9 +575,9 @@ dependencies = [
 
 [[package]]
 name = "egui-multiwin"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "730960cc5c35583103d9b46f9b7f10fd963f0de90c29ce870c8037d72dfd5696"
+checksum = "1637c3999a6d7ea226c61aa9d53d6036b1e2a6e936d5a603e6fe2ac25fc2390e"
 dependencies = [
  "egui",
  "egui_glow",
