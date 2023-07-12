@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[non_exhaustive]
 /// A variant of a component, with links to one schematic symbol and one or more pcb footprints that might apply to it
 pub struct ComponentVariant {
     /// The symbol for the variant
-    symbol: Option<crate::symbol::SymbolReference>,
+    pub symbol: Option<crate::symbol::SymbolReference>,
     /// The name of the variant
     pub name: String,
 }

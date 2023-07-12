@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::{
     component::{ComponentDefinition, ComponentVariant},
-    symbol::SymbolDefinition,
+    symbol::{LibraryReference, SymbolDefinition, SymbolReference},
 };
 
 /// The actions that can be done to a library
@@ -132,6 +132,17 @@ pub enum LibraryAction {
         /// Temporary storage for component. This should be a None
         variant: Option<ComponentVariant>,
     },
+    /// Change the symbol for a variant of a component
+    ChangeComponentVariantSymbol {
+        /// The name of the library
+        libname: String,
+        /// The name of the symbol to modify
+        comname: String,
+        /// The name of the variant
+        varname: String,
+        /// The symbol reference
+        sref: Option<SymbolReference>,
+    },
 }
 
 impl undo::Action for LibraryAction {
@@ -141,6 +152,22 @@ impl undo::Action for LibraryAction {
 
     fn apply(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
+            LibraryAction::ChangeComponentVariantSymbol {
+                libname,
+                comname,
+                varname,
+                sref,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    if let Some(comp) = target.library.components.get_mut(comname) {
+                        if let Some(var) = comp.variants.get_mut(varname) {
+                            let old = var.symbol.clone();
+                            var.symbol = sref.to_owned();
+                            *sref = old;
+                        }
+                    }
+                }
+            }
             LibraryAction::CreateComponentVariant {
                 libname,
                 comname,
@@ -279,6 +306,22 @@ impl undo::Action for LibraryAction {
 
     fn undo(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
+            LibraryAction::ChangeComponentVariantSymbol {
+                libname,
+                comname,
+                varname,
+                sref,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    if let Some(comp) = target.library.components.get_mut(comname) {
+                        if let Some(var) = comp.variants.get_mut(varname) {
+                            let old = var.symbol.clone();
+                            var.symbol = sref.to_owned();
+                            *sref = old;
+                        }
+                    }
+                }
+            }
             LibraryAction::CreateComponentVariant {
                 libname,
                 comname,
@@ -561,6 +604,12 @@ impl undo::Action for LibraryAction {
                 libname: _,
                 symname: _,
                 pin: _,
+            } => undo::Merged::No(other),
+            LibraryAction::ChangeComponentVariantSymbol {
+                libname: _,
+                comname: _,
+                varname: _,
+                sref: _,
             } => undo::Merged::No(other),
         }
     }

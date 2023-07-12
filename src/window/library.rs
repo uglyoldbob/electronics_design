@@ -7,9 +7,10 @@ use egui_multiwin::{
     tracked_window::{RedrawResponse, TrackedWindow},
 };
 
+use crate::component::ComponentVariant;
 use crate::library::LibraryAction;
-use crate::symbol::MouseMode;
 use crate::symbol::SymbolWidgetSelection;
+use crate::symbol::{LibraryReference, MouseMode};
 use crate::MyApp;
 
 /// An enumeration of things that be selected in the library editor
@@ -29,6 +30,8 @@ pub struct Library {
     selected_thing: Option<Thing>,
     /// The selected variant of a component
     selected_variant: Option<String>,
+    /// The selected library when editing a component variant
+    selected_variant_library: Option<String>,
     /// The selected objects for the symbol being modified
     selection: Vec<crate::symbol::SymbolWidgetSelection>,
     /// Used to indicate that there are changes to library changes
@@ -53,6 +56,7 @@ impl Library {
                 selected_library: None,
                 selected_thing: None,
                 selected_variant: None,
+                selected_variant_library: None,
                 selection: Vec::new(),
                 old_saved_status: false,
                 mm: MouseMode::Selection,
@@ -485,7 +489,10 @@ impl TrackedWindow<MyApp> for Library {
             c.library_log.apply(&mut c.libraries, a);
         }
 
+        let mut component_modify = None;
+
         let mut actions = Vec::new();
+        let mut component_changed = false;
         egui::CentralPanel::default().show(&egui.egui_ctx, |ui| {
             self.selected_library.as_ref().and_then(|l| {
                 c.libraries.get_mut(l).and_then(|a| {
@@ -533,6 +540,7 @@ impl TrackedWindow<MyApp> for Library {
                                         let mut cb = egui::ComboBox::from_label("Select variant");
                                         if let Some(selvar) = &self.selected_variant {
                                             if let Some(var) = com.variants.get(selvar) {
+                                                component_modify = Some(var.to_owned());
                                                 cb = cb.selected_text(&var.name);
                                             }
                                         }
@@ -555,6 +563,7 @@ impl TrackedWindow<MyApp> for Library {
                                                     variant: None,
                                                 });
                                             }
+                                            ui.separator();
                                         }
                                     }
                                 }
@@ -563,7 +572,58 @@ impl TrackedWindow<MyApp> for Library {
                     })
                 })
             });
+            let mut cb = egui::ComboBox::from_label("Select library for symbol");
+            if let Some(l) = &self.selected_variant_library {
+                cb = cb.selected_text(l.clone());
+            }
+            cb.show_ui(ui, |ui| {
+                for l in c.libraries.keys() {
+                    if ui.selectable_label(false, l).clicked() {
+                        self.selected_variant_library = Some(l.clone());
+                    }
+                }
+            });
+            if let Some(component) = &mut component_modify {
+                if let Some(lib) = &self.selected_variant_library {
+                    let olib = c.libraries.get(lib);
+                    if let Some(Some(libr)) = olib {
+                        let mut cb = egui::ComboBox::from_label("Select symbol from library");
+                        if let Some(l) = &component.symbol {
+                            cb = cb.selected_text(l.sym.clone());
+                        }
+                        cb.show_ui(ui, |ui| {
+                            for l in libr.library.syms.keys() {
+                                if ui.selectable_label(false, l).clicked() {
+                                    let lr = if Some(lib.clone()) == self.selected_library {
+                                        LibraryReference::ThisOne
+                                    } else {
+                                        LibraryReference::Another(lib.clone())
+                                    };
+                                    component.symbol = Some(crate::symbol::SymbolReference { lib: lr, sym: l.clone() });
+                                    component_changed = true;
+                                }
+                            }
+                        });
+                    }
+                }
+            }
         });
+        if component_changed {
+            if let Some(component) = &mut component_modify {
+                if let Some(lib) = &self.selected_library {
+                    if let Some(Thing::Component(comm)) = &self.selected_thing {
+                        if let Some(var) = &self.selected_variant {
+                            actions.push(LibraryAction::ChangeComponentVariantSymbol {
+                                libname: lib.clone(),
+                                comname: comm.clone(),
+                                varname: var.clone(),
+                                sref: component.symbol.clone(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
         for a in actions {
             c.library_log.apply(&mut c.libraries, a);
         }

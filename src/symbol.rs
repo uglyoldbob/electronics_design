@@ -102,7 +102,7 @@ pub enum MouseMode {
     NewPin,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[serde(tag = "type", content = "args")]
 #[non_exhaustive]
 /// A reference to either the library that has this reference or another library
@@ -113,7 +113,7 @@ pub enum LibraryReference {
     Another(String),
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[non_exhaustive]
 /// A reference to a symbol in a library somewhere
 pub struct SymbolReference {
