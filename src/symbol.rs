@@ -2,7 +2,7 @@
 
 use crate::library::LibraryAction;
 use crate::schematic::TextOnPage;
-use egui_multiwin::egui::{self, Color32};
+use egui_multiwin::egui;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 #[non_exhaustive]
@@ -100,6 +100,27 @@ pub enum MouseMode {
     NewText,
     /// Allows creating new pins for a symbol, with a specified rotation
     NewPin,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type", content = "args")]
+#[non_exhaustive]
+/// A reference to either the library that has this reference or another library
+pub enum LibraryReference {
+    /// The library reference refers to the containing library
+    ThisOne,
+    /// The library reference refers to another library by name
+    Another(String),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
+/// A reference to a symbol in a library somewhere
+pub struct SymbolReference {
+    ///The library the symbol belongs to
+    pub lib: LibraryReference,
+    /// The symbol name in the library
+    pub sym: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

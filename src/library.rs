@@ -2,9 +2,10 @@
 
 use std::collections::HashMap;
 
-use egui_multiwin::egui;
-
-use crate::symbol::SymbolDefinition;
+use crate::{
+    component::{ComponentDefinition, ComponentVariant},
+    symbol::SymbolDefinition,
+};
 
 /// The actions that can be done to a library
 pub enum LibraryAction {
@@ -93,6 +94,44 @@ pub enum LibraryAction {
         /// The pin to add, must be a Some variant
         pin: Option<crate::symbol::Pin>,
     },
+    /// Add a new component to the library
+    CreateComponent {
+        /// The name of the library
+        libname: String,
+        /// The name of the symbol to create
+        comname: String,
+    },
+    /// Delete a component from the library, symbol must be None
+    DeleteComponent {
+        /// The name of the library
+        libname: String,
+        /// The name of the symbol to Delete
+        comname: String,
+        /// The deleted object
+        component: Option<ComponentDefinition>,
+    },
+    /// Create a variant for a component in a library, variant should be None
+    CreateComponentVariant {
+        /// The name of the library
+        libname: String,
+        /// The name of the symbol to modify
+        comname: String,
+        /// The name of the variant
+        varname: String,
+        /// Temporary storage for component. This should be a None
+        variant: Option<ComponentVariant>,
+    },
+    /// Delete a variant for a component in a library, variant should be None
+    DeleteComponentVariant {
+        /// The name of the library
+        libname: String,
+        /// The name of the symbol to modify
+        comname: String,
+        /// The name of the variant
+        varname: String,
+        /// Temporary storage for component. This should be a None
+        variant: Option<ComponentVariant>,
+    },
 }
 
 impl undo::Action for LibraryAction {
@@ -102,6 +141,48 @@ impl undo::Action for LibraryAction {
 
     fn apply(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
+            LibraryAction::CreateComponentVariant {
+                libname,
+                comname,
+                varname,
+                variant: _,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    if let Some(comp) = target.library.components.get_mut(comname) {
+                        comp.variants
+                            .insert(varname.clone(), ComponentVariant::new(varname.clone()));
+                    }
+                }
+            }
+            LibraryAction::DeleteComponentVariant {
+                libname,
+                comname,
+                varname,
+                variant,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    if let Some(comp) = target.library.components.get_mut(comname) {
+                        *variant = comp.variants.remove(varname);
+                    }
+                }
+            }
+            LibraryAction::CreateComponent { libname, comname } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    target
+                        .library
+                        .components
+                        .insert(comname.clone(), ComponentDefinition::new(comname.clone()));
+                }
+            }
+            LibraryAction::DeleteComponent {
+                libname,
+                comname,
+                component,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    *component = target.library.components.remove(comname);
+                }
+            }
             LibraryAction::CreateNewLibrary { name, lib } => {
                 if let Some(l) = lib.take() {
                     target.insert(name.clone(), Some(l));
@@ -198,6 +279,32 @@ impl undo::Action for LibraryAction {
 
     fn undo(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
+            LibraryAction::CreateComponentVariant {
+                libname,
+                comname,
+                varname,
+                variant,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    if let Some(comp) = target.library.components.get_mut(comname) {
+                        *variant = comp.variants.remove(varname);
+                    }
+                }
+            }
+            LibraryAction::DeleteComponentVariant {
+                libname,
+                comname,
+                varname: _,
+                variant,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    if let Some(comp) = target.library.components.get_mut(comname) {
+                        if let Some(v) = variant.take() {
+                            comp.variants.insert(v.name.clone(), v);
+                        }
+                    }
+                }
+            }
             LibraryAction::CreateNewLibrary { name, lib } => {
                 if let Some(l) = target.remove(name) {
                     *lib = l;
@@ -267,9 +374,26 @@ impl undo::Action for LibraryAction {
                     }
                 }
             }
+            LibraryAction::DeleteComponent {
+                libname,
+                comname,
+                component,
+            } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    let sym = component.take();
+                    if let Some(s) = sym {
+                        target.library.components.insert(comname.clone(), s);
+                    }
+                }
+            }
             LibraryAction::CreateSymbol { libname, symname } => {
                 if let Some(Some(target)) = target.get_mut(libname) {
                     target.library.syms.remove(symname);
+                }
+            }
+            LibraryAction::CreateComponent { libname, comname } => {
+                if let Some(Some(target)) = target.get_mut(libname) {
+                    target.library.components.remove(comname);
                 }
             }
             LibraryAction::CreatePin {
@@ -408,9 +532,30 @@ impl undo::Action for LibraryAction {
                 symname: _,
                 symbol: _,
             } => undo::Merged::No(other),
+            LibraryAction::DeleteComponent {
+                libname: _,
+                comname: _,
+                component: _,
+            } => undo::Merged::No(other),
             LibraryAction::CreateSymbol {
                 libname: _,
                 symname: _,
+            } => undo::Merged::No(other),
+            LibraryAction::CreateComponent {
+                libname: _,
+                comname: _,
+            } => undo::Merged::No(other),
+            LibraryAction::CreateComponentVariant {
+                libname: _,
+                comname: _,
+                varname: _,
+                variant: _,
+            } => undo::Merged::No(other),
+            LibraryAction::DeleteComponentVariant {
+                libname: _,
+                comname: _,
+                varname: _,
+                variant: _,
             } => undo::Merged::No(other),
             LibraryAction::CreatePin {
                 libname: _,
@@ -429,6 +574,8 @@ pub struct Library {
     pub name: String,
     /// The symbols defined in the library
     pub syms: HashMap<String, crate::symbol::SymbolDefinition>,
+    /// The components defined in the library
+    pub components: HashMap<String, ComponentDefinition>,
 }
 
 impl Library {
@@ -437,6 +584,7 @@ impl Library {
         Self {
             name,
             syms: HashMap::new(),
+            components: HashMap::new(),
         }
     }
 }

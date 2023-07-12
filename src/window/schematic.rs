@@ -37,6 +37,10 @@ pub struct SchematicWindow {
     origin: crate::general::Coordinates,
     /// The zoom factor for the widget
     zoom: f32,
+    /// The name of the library selected
+    selected_library: Option<String>,
+    /// The component selected for adding to schematic
+    selected_component: Option<String>,
 }
 
 impl SchematicWindow {
@@ -50,6 +54,8 @@ impl SchematicWindow {
                 mm: MouseMode::Selection,
                 origin: crate::general::Coordinates::Inches(0.0, 0.0),
                 zoom: 115.0,
+                selected_library: None,
+                selected_component: None,
             }),
             builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
@@ -336,7 +342,63 @@ impl TrackedWindow<MyApp> for SchematicWindow {
         egui::SidePanel::left("left panel")
             .resizable(true)
             .show(&egui.egui_ctx, |ui| {
-                ui.label("Left");
+                egui::TopBottomPanel::top("library select")
+                    .resizable(true)
+                    .show_inside(ui, |ui| {
+                        ui.label("Libraries");
+                        ui.separator();
+                        egui::ScrollArea::vertical()
+                            .scroll_bar_visibility(
+                                egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                            )
+                            .auto_shrink([false, false])
+                            .stick_to_right(true)
+                            .show(ui, |ui| {
+                                for name in c.libraries.keys() {
+                                    if ui
+                                        .selectable_label(
+                                            self.selected_library == Some(name.clone()),
+                                            name.clone(),
+                                        )
+                                        .clicked()
+                                    {
+                                        self.selected_library = Some(name.clone());
+                                    }
+                                }
+                            });
+                    });
+
+                if let Some(l) = &self.selected_library {
+                    let check = c.libraries.get_mut(l);
+                    if let Some(Some(lib)) = check {
+                        egui::TopBottomPanel::top("component select")
+                            .resizable(true)
+                            .show_inside(ui, |ui| {
+                                ui.label("Components");
+                                ui.separator();
+                                egui::ScrollArea::vertical()
+                                    .id_source("component scroll")
+                                    .scroll_bar_visibility(
+                                        egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                    )
+                                    .auto_shrink([false, false])
+                                    .stick_to_right(true)
+                                    .show(ui, |ui| {
+                                        for name in lib.library.components.keys() {
+                                            if ui
+                                                .selectable_label(
+                                                    self.selected_component == Some(name.clone()),
+                                                    name,
+                                                )
+                                                .clicked()
+                                            {
+                                                self.selected_component = Some(name.clone());
+                                            }
+                                        }
+                                    });
+                            });
+                    }
+                }
             });
 
         let mut actionlog = Vec::new();
@@ -420,6 +482,16 @@ impl TrackedWindow<MyApp> for SchematicWindow {
             }
         }
 
+        let mut component = None;
+        if let Some(lib) = &self.selected_library {
+            let lib = c.libraries.get(lib);
+            if let Some(Some(lib)) = lib {
+                if let Some(sch) = &self.selected_component {
+                    component = lib.library.components.get(sch);
+                }
+            }
+        }
+
         egui::CentralPanel::default().show(&egui.egui_ctx, |ui| {
             if let Some(sch) = &mut c.schematic {
                 let sch = SchematicWidget::new(
@@ -428,6 +500,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                     &mut self.selection,
                     &mut self.origin,
                     &mut self.zoom,
+                    component,
                 );
                 let resp = ui.add(sch);
                 if resp.dragged_by(egui::PointerButton::Middle) {

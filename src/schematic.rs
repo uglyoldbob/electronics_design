@@ -2,7 +2,7 @@
 
 use egui_multiwin::egui;
 
-use crate::{general::StoragePath, symbol::Symbol};
+use crate::{component::ComponentDefinition, general::StoragePath, symbol::Symbol};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq)]
 #[serde(tag = "type", content = "args")]
@@ -18,6 +18,7 @@ pub enum Colors {
 }
 
 impl Colors {
+    /// Returns the specific color for the color specified and the given color mode
     pub fn get_color32(&self, mode: crate::general::ColorMode) -> egui::Color32 {
         match self {
             Colors::Standard => match mode {
@@ -123,6 +124,8 @@ pub enum MouseMode {
     TextDrag,
     /// Allows new text to be placed on a page
     NewText,
+    /// Allows a user to add components to a schematic
+    NewComponent,
 }
 
 impl Schematic {
@@ -486,7 +489,7 @@ impl SchematicHolder {
     pub fn save(&mut self) -> Result<(), crate::general::StorageSaveError> {
         if let Some(path) = &self.path {
             let mut writer = path.writer()?;
-            return Ok(self.format.save(&mut writer, &self.schematic)?);
+            return self.format.save(&mut writer, &self.schematic);
         }
         Ok(())
     }
@@ -529,6 +532,8 @@ pub struct SchematicWidget<'a> {
     origin: &'a mut crate::general::Coordinates,
     /// The zoom factor
     zoom: &'a mut f32,
+    /// The component that a user has selected for adding to the schematic
+    component: Option<&'a ComponentDefinition>,
 }
 
 impl<'a> SchematicWidget<'a> {
@@ -539,6 +544,7 @@ impl<'a> SchematicWidget<'a> {
         sel: &'a mut Option<SchematicSelection>,
         origin: &'a mut crate::general::Coordinates,
         zoom: &'a mut f32,
+        component: Option<&'a ComponentDefinition>,
     ) -> Self {
         Self {
             sch,
@@ -547,6 +553,7 @@ impl<'a> SchematicWidget<'a> {
             selection: sel,
             origin,
             zoom,
+            component,
         }
     }
 }
@@ -643,6 +650,11 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                     *self.selection = None;
                 }
             }
+            MouseMode::NewComponent => {
+                if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                    *self.mm = MouseMode::Selection;
+                }
+            }
         }
 
         if pr.clicked() {
@@ -701,6 +713,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             let id = egui::Id::new(1 + i);
             let response = ui.interact(r, id, sense);
             let response = match self.mm {
+                MouseMode::NewComponent => response,
                 MouseMode::NewText => response,
                 MouseMode::Selection => {
                     if response.clicked() {
@@ -765,6 +778,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 let response = ui.interact(r, egui::Id::new(42424242 + i), sense);
                 match self.mm {
                     MouseMode::NewText => {}
+                    MouseMode::NewComponent => {}
                     MouseMode::Selection => {
                         if response.clicked() {
                             println!("Clicked");
@@ -792,6 +806,23 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             }
         }
 
+        for a in actions {
+            self.sch.schematic_log.apply(&mut self.sch.schematic, a);
+        }
+
+        let mut actions = Vec::new();
+        if let MouseMode::NewComponent = &self.mm {
+            let pos = ui.input(|i| i.pointer.interact_pos());
+            if let Some(pos) = pos {
+                if let Some(component) = self.component {
+                    if pr.clicked() {
+                        let pos2 = pos - area.left_top();
+                        todo!();
+                    } else {
+                    }
+                }
+            }
+        }
         for a in actions {
             self.sch.schematic_log.apply(&mut self.sch.schematic, a);
         }

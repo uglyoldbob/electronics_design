@@ -7,11 +7,13 @@
     windows_subsystem = "windows"
 )] // hide console window on Windows in release
 
+/// The main font to use for schematics and board layout
 const COMPUTER_MODERN_FONT: &[u8] = include_bytes!("./cmunbtl.ttf");
 
 mod main_common;
 use main_common::*;
 
+mod component;
 mod general;
 mod ipc;
 mod library;
@@ -105,7 +107,7 @@ fn main() {
     let mut multi_window: MultiWindow<MyApp, ipc::IpcMessage> =
         egui_multiwin::multi_window::MultiWindow::new();
     let mut fd = egui_multiwin::egui::FontData::from_static(COMPUTER_MODERN_FONT);
-    fd.tweak.y_offset_factor = 1.0/3.0;
+    fd.tweak.y_offset_factor = 1.0 / 3.0;
     multi_window.add_font("computermodern".to_string(), fd);
 
     for l in crate::library::LibraryHolder::get_user_libraries(&ac.dirs) {
@@ -126,7 +128,7 @@ fn main() {
             }
         }
     } else {
-        let _e = multi_window.add(window::schematic::SchematicWindow::request(), &event_loop);
+        let _e = multi_window.add(window::library::Library::request(), &event_loop);
     }
     multi_window.run(event_loop, ac);
 }

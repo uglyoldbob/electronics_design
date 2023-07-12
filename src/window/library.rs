@@ -12,12 +12,23 @@ use crate::symbol::MouseMode;
 use crate::symbol::SymbolWidgetSelection;
 use crate::MyApp;
 
+/// An enumeration of things that be selected in the library editor
+#[derive(PartialEq)]
+enum Thing {
+    /// A symbol has been selected
+    Symbol(String),
+    /// A component has been selected
+    Component(String),
+}
+
 /// The window structure
 pub struct Library {
     /// The name of the library selected for viewing / editing
     selected_library: Option<String>,
-    /// The symbol selected for viewing / editing
-    selected_symbol: Option<String>,
+    /// The thing selected for viewing / editing
+    selected_thing: Option<Thing>,
+    /// The selected variant of a component
+    selected_variant: Option<String>,
     /// The selected objects for the symbol being modified
     selection: Vec<crate::symbol::SymbolWidgetSelection>,
     /// Used to indicate that there are changes to library changes
@@ -40,7 +51,8 @@ impl Library {
         NewWindowRequest {
             window_state: Box::new(Self {
                 selected_library: None,
-                selected_symbol: None,
+                selected_thing: None,
+                selected_variant: None,
                 selection: Vec::new(),
                 old_saved_status: false,
                 mm: MouseMode::Selection,
@@ -212,43 +224,48 @@ impl TrackedWindow<MyApp> for Library {
                 egui::TopBottomPanel::top("library select")
                     .resizable(true)
                     .show_inside(ui, |ui| {
-                        egui::ScrollArea::vertical()
-                            .scroll_bar_visibility(
-                                egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
-                            )
-                            .auto_shrink([false, false])
-                            .stick_to_right(true)
+                        egui::CollapsingHeader::new("Libraries")
+                            .default_open(true)
                             .show(ui, |ui| {
-                                ui.horizontal(|ui| {
-                                    if ui.button("New library").clicked() {
-                                        windows_to_create
-                                            .push(super::library_name::LibraryName::request());
-                                    }
-                                    if let Some(l) = &self.selected_library {
-                                        if ui.button("Delete Library").clicked() {
-                                            c.library_log.apply(
-                                                &mut c.libraries,
-                                                crate::library::LibraryAction::DeleteLibrary {
-                                                    name: l.clone(),
-                                                    old_lib: None,
-                                                },
-                                            );
-                                            self.selected_library = None;
+                                egui::ScrollArea::vertical()
+                                    .scroll_bar_visibility(
+                                        egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                    )
+                                    .auto_shrink([false, false])
+                                    .stick_to_right(true)
+                                    .show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            if ui.button("New library").clicked() {
+                                                windows_to_create.push(
+                                                    super::library_name::LibraryName::request(),
+                                                );
+                                            }
+                                            if let Some(l) = &self.selected_library {
+                                                if ui.button("Delete Library").clicked() {
+                                                    c.library_log.apply(
+                                                    &mut c.libraries,
+                                                    crate::library::LibraryAction::DeleteLibrary {
+                                                        name: l.clone(),
+                                                        old_lib: None,
+                                                    },
+                                                );
+                                                    self.selected_library = None;
+                                                }
+                                            }
+                                        });
+                                        ui.separator();
+                                        for name in c.libraries.keys() {
+                                            if ui
+                                                .selectable_label(
+                                                    self.selected_library == Some(name.clone()),
+                                                    name.clone(),
+                                                )
+                                                .clicked()
+                                            {
+                                                self.selected_library = Some(name.clone());
+                                            }
                                         }
-                                    }
-                                });
-                                ui.separator();
-                                for name in c.libraries.keys() {
-                                    if ui
-                                        .selectable_label(
-                                            self.selected_library == Some(name.clone()),
-                                            name.clone(),
-                                        )
-                                        .clicked()
-                                    {
-                                        self.selected_library = Some(name.clone());
-                                    }
-                                }
+                                    });
                             });
                     });
 
@@ -260,7 +277,10 @@ impl TrackedWindow<MyApp> for Library {
                         egui::TopBottomPanel::top("symbol select")
                             .resizable(true)
                             .show_inside(ui, |ui| {
-                                egui::ScrollArea::vertical()
+                                egui::CollapsingHeader::new("Symbols")
+                                    .default_open(false)
+                                    .show(ui, |ui| {
+                                        egui::ScrollArea::vertical()
                                     .id_source("symbol scroll")
                                     .scroll_bar_visibility(
                                         egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
@@ -276,14 +296,14 @@ impl TrackedWindow<MyApp> for Library {
                                                     ),
                                                 );
                                             }
-                                            if let Some(symname) = &self.selected_symbol {
+                                            if let Some(Thing::Symbol(symname)) = &self.selected_thing {
                                                 if ui.button("Delete Symbol").clicked() {
                                                     actionlog.push(LibraryAction::DeleteSymbol {
                                                         libname: l.clone(),
                                                         symname: symname.clone(),
                                                         symbol: None,
                                                     });
-                                                    self.selected_symbol = None;
+                                                    self.selected_thing = None;
                                                 }
                                             }
                                         });
@@ -291,15 +311,62 @@ impl TrackedWindow<MyApp> for Library {
                                         for name in lib.library.syms.keys() {
                                             if ui
                                                 .selectable_label(
-                                                    self.selected_symbol == Some(name.clone()),
+                                                    self.selected_thing == Some(Thing::Symbol(name.clone())),
                                                     name,
                                                 )
                                                 .clicked()
                                             {
-                                                self.selected_symbol = Some(name.clone());
+                                                self.selected_thing = Some(Thing::Symbol(name.clone()));
                                                 self.recenter = true;
                                             }
                                         }
+                                    });
+                                    });
+                                ui.separator();
+                                egui::CollapsingHeader::new("Components")
+                                    .default_open(false)
+                                    .show(ui, |ui| {
+                                        egui::ScrollArea::vertical()
+                                    .id_source("component scroll")
+                                    .scroll_bar_visibility(
+                                        egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                    )
+                                    .auto_shrink([false, false])
+                                    .stick_to_right(true)
+                                    .show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            if ui.button("New component").clicked() {
+                                                windows_to_create.push(
+                                                    crate::window::component_name::Name::request(
+                                                        l.clone(),
+                                                    ),
+                                                );
+                                            }
+                                            if let Some(Thing::Component(comname)) = &self.selected_thing {
+                                                if ui.button("Delete Component").clicked() {
+                                                    actionlog.push(LibraryAction::DeleteComponent {
+                                                        libname: l.clone(),
+                                                        comname: comname.clone(),
+                                                        component: None,
+                                                    });
+                                                    self.selected_thing = None;
+                                                }
+                                            }
+                                        });
+                                        ui.separator();
+                                        for name in lib.library.components.keys() {
+                                            if ui
+                                                .selectable_label(
+                                                    self.selected_thing == Some(Thing::Component(name.clone())),
+                                                    name,
+                                                )
+                                                .clicked()
+                                            {
+                                                self.selected_thing = Some(Thing::Component(name.clone()));
+                                                self.recenter = true;
+                                            }
+                                        }
+                                    });
                                     });
                             });
                     }
@@ -315,7 +382,7 @@ impl TrackedWindow<MyApp> for Library {
         if let Some(l) = &self.selected_library {
             let check = c.libraries.get_mut(l);
             if let Some(Some(lib)) = check {
-                if let Some(sym) = &self.selected_symbol {
+                if let Some(Thing::Symbol(sym)) = &self.selected_thing {
                     egui::SidePanel::right("right panel").resizable(true).show(
                         &egui.egui_ctx,
                         |ui| {
@@ -423,36 +490,72 @@ impl TrackedWindow<MyApp> for Library {
             self.selected_library.as_ref().and_then(|l| {
                 c.libraries.get_mut(l).and_then(|a| {
                     a.as_mut().and_then(|lh| {
-                        self.selected_symbol.as_ref().map(|symname| {
+                        self.selected_thing.as_ref().map(|thing| {
                             let lib = &mut lh.library;
-                            if let Some(sym) = lib.syms.get_mut(symname) {
-                                let mut sym =
-                                    crate::symbol::SymbolDefinitionHolder::new(sym, l.clone());
-                                let sym = crate::symbol::SymbolDefinitionWidget::new(
-                                    &mut sym,
-                                    &mut self.mm,
-                                    &mut self.selection,
-                                    &mut actions,
-                                    &mut self.origin,
-                                    &mut self.zoom,
-                                    self.recenter,
-                                    &mut self.pin_angle,
-                                );
-                                self.recenter = false;
-                                let resp = ui.add(sym);
-                                if resp.dragged_by(egui::PointerButton::Middle) {
-                                    self.origin += crate::general::Coordinates::from_pos2(
-                                        resp.drag_delta().to_pos2(),
-                                        self.zoom,
-                                    );
+                            match thing {
+                                Thing::Symbol(symname) => {
+                                    if let Some(sym) = lib.syms.get_mut(symname) {
+                                        let mut sym = crate::symbol::SymbolDefinitionHolder::new(
+                                            sym,
+                                            l.clone(),
+                                        );
+                                        let sym = crate::symbol::SymbolDefinitionWidget::new(
+                                            &mut sym,
+                                            &mut self.mm,
+                                            &mut self.selection,
+                                            &mut actions,
+                                            &mut self.origin,
+                                            &mut self.zoom,
+                                            self.recenter,
+                                            &mut self.pin_angle,
+                                        );
+                                        self.recenter = false;
+                                        let resp = ui.add(sym);
+                                        if resp.dragged_by(egui::PointerButton::Middle) {
+                                            self.origin += crate::general::Coordinates::from_pos2(
+                                                resp.drag_delta().to_pos2(),
+                                                self.zoom,
+                                            );
+                                        }
+                                        if resp.double_clicked_by(egui::PointerButton::Middle) {
+                                            self.recenter = true;
+                                        }
+                                        if resp.hovered() {
+                                            let scroll = ui.input(|i| i.scroll_delta);
+                                            if scroll.y.abs() > f32::EPSILON {
+                                                self.zoom *= f32::powf(1.0025, scroll.y);
+                                            }
+                                        }
+                                    }
                                 }
-                                if resp.double_clicked_by(egui::PointerButton::Middle) {
-                                    self.recenter = true;
-                                }
-                                if resp.hovered() {
-                                    let scroll = ui.input(|i| i.scroll_delta);
-                                    if scroll.y.abs() > f32::EPSILON {
-                                        self.zoom *= f32::powf(1.0025, scroll.y);
+                                Thing::Component(comname) => {
+                                    if let Some(com) = lib.components.get_mut(comname) {
+                                        let mut cb = egui::ComboBox::from_label("Select variant");
+                                        if let Some(selvar) = &self.selected_variant {
+                                            if let Some(var) = com.variants.get(selvar) {
+                                                cb = cb.selected_text(&var.name);
+                                            }
+                                        }
+                                        cb.show_ui(ui, |ui| {
+                                            for (name, var) in com.variants.iter() {
+                                                if ui.selectable_label(false, &var.name).clicked() {
+                                                    self.selected_variant = Some(name.clone());
+                                                }
+                                            }
+                                        });
+                                        if ui.button("Add variant").clicked() {
+                                            windows_to_create.push(crate::window::component_variant_name::Name::request(l.clone(), comname.clone()));
+                                        }
+                                        if let Some(selvar) = &self.selected_variant {
+                                            if ui.button("Delete variant").clicked() {
+                                                actions.push(LibraryAction::DeleteComponentVariant {
+                                                    libname: l.clone(),
+                                                    comname: comname.clone(),
+                                                    varname: selvar.clone(),
+                                                    variant: None,
+                                                });
+                                            }
+                                        }
                                     }
                                 }
                             }
