@@ -65,11 +65,21 @@ impl StoragePath {
             StoragePath::LocalFilesystem(_) => "Local Filesystem".to_string(),
         }
     }
-    /// Convert the storage path to a string that represents the entire path
-    pub fn to_string(&self) -> String {
+
+    /// Returns a path (if applicable) for the open command
+    pub fn open_path(&self) -> Option<std::path::PathBuf> {
         match self {
-            StoragePath::LocalFilesystem(p) => format!("Local Filesystem {}", p),
+            StoragePath::LocalFilesystem(p) => Some(std::path::PathBuf::from(p)),
         }
+    }
+}
+
+
+impl std::fmt::Display for StoragePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            StoragePath::LocalFilesystem(p) => format!("Local Filesystem {}", p),
+        })
     }
 }
 
@@ -107,14 +117,13 @@ impl From<StoragePathError> for StorageLoadError {
     }
 }
 
-impl StorageLoadError {
-    /// Convert the error to a string
-    pub fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for StorageLoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
             Self::IoError(e) => e.to_string(),
             Self::DeserializeError(e) => e.clone(),
             Self::StoragePathError(s) => s.to_string(),
-        }
+        })
     }
 }
 
@@ -131,12 +140,11 @@ impl From<std::io::Error> for StoragePathError {
     }
 }
 
-impl StoragePathError {
-    /// Convert the error to a string
-    pub fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for StoragePathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
             Self::IoError(e) => e.to_string(),
-        }
+        })
     }
 }
 
@@ -162,14 +170,13 @@ impl From<StoragePathError> for StorageSaveError {
     }
 }
 
-impl StorageSaveError {
-    /// Convert the error to a string
-    pub fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for StorageSaveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
             Self::IoError(e) => e.to_string(),
             Self::SerializeError(e) => e.clone(),
             Self::StoragePathError(e) => e.to_string(),
-        }
+        })
     }
 }
 

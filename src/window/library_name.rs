@@ -82,7 +82,7 @@ impl TrackedWindow<MyApp> for LibraryName {
                             },
                         );
                     }
-                    if let Some(Some(lib)) = c.libraries.get_mut(&self.name) {
+                    if let Some(lib) = c.libraries.get_mut(&self.name) {
                         lib.set_path(p);
                         if let Err(e) = lib.save() {
                             let _e = native_dialog::MessageDialog::new()

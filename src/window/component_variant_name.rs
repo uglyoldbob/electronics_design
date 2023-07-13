@@ -68,26 +68,31 @@ impl TrackedWindow<MyApp> for Name {
             let te = egui::widgets::TextEdit::singleline(&mut self.name)
                 .hint_text("Component variant name");
             ui.add(te).request_focus();
-            let lib = c.libraries.get_mut(&self.lib_name);
-            if let Some(Some(lib)) = lib {
-                if let Some(component) = lib.library.components.get_mut(&self.component_name) {
-                    if !self.name.is_empty() && component.variants.contains_key(&self.name) {
-                        ui.colored_label(egui::Color32::RED, "Component variant already exists");
-                    } else if ui.button("Create").clicked()
-                        || ui.input(|i| i.key_pressed(egui::Key::Enter))
-                    {
-                        if !lib.library.syms.contains_key(&self.name) {
-                            actionlog.push(LibraryAction::CreateComponentVariant {
-                                libname: self.lib_name.clone(),
-                                comname: self.component_name.clone(),
-                                varname: self.name.clone(),
-                                variant: None,
-                            });
+            let lib = c.libraries.get(&self.lib_name);
+            if let Some(lib) = lib {
+                if let Some(library) = &lib.library {
+                    if let Some(component) = library.components.get(&self.component_name) {
+                        if !self.name.is_empty() && component.variants.contains_key(&self.name) {
+                            ui.colored_label(
+                                egui::Color32::RED,
+                                "Component variant already exists",
+                            );
+                        } else if ui.button("Create").clicked()
+                            || ui.input(|i| i.key_pressed(egui::Key::Enter))
+                        {
+                            if !library.syms.contains_key(&self.name) {
+                                actionlog.push(LibraryAction::CreateComponentVariant {
+                                    libname: self.lib_name.clone(),
+                                    comname: self.component_name.clone(),
+                                    varname: self.name.clone(),
+                                    variant: None,
+                                });
+                            }
+                            quit = true;
                         }
-                        quit = true;
+                    } else {
+                        ui.label("Component does not exist for some reason");
                     }
-                } else {
-                    ui.label("Component does not exist for some reason");
                 }
             } else {
                 ui.label("Library does not exist for some reason");

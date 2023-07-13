@@ -41,6 +41,8 @@ pub struct SchematicWindow {
     selected_library: Option<String>,
     /// The component selected for adding to schematic
     selected_component: Option<String>,
+    /// The variant of the component selected for addition to schematic
+    selected_variant: Option<String>,
 }
 
 impl SchematicWindow {
@@ -56,6 +58,7 @@ impl SchematicWindow {
                 zoom: 115.0,
                 selected_library: None,
                 selected_component: None,
+                selected_variant: None,
             }),
             builder: egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
@@ -211,7 +214,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                             if s.has_path() {
                                 if let Err(e) = s.save() {
                                     let s: String =
-                                        format!("Unable to save file {}", e.to_string());
+                                        format!("Unable to save file {}", e);
                                     native_dialog::MessageDialog::new()
                                         .set_type(native_dialog::MessageType::Error)
                                         .set_title("ERROR")
@@ -370,33 +373,65 @@ impl TrackedWindow<MyApp> for SchematicWindow {
 
                 if let Some(l) = &self.selected_library {
                     let check = c.libraries.get_mut(l);
-                    if let Some(Some(lib)) = check {
-                        egui::TopBottomPanel::top("component select")
-                            .resizable(true)
-                            .show_inside(ui, |ui| {
-                                ui.label("Components");
-                                ui.separator();
-                                egui::ScrollArea::vertical()
-                                    .id_source("component scroll")
-                                    .scroll_bar_visibility(
-                                        egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
-                                    )
-                                    .auto_shrink([false, false])
-                                    .stick_to_right(true)
-                                    .show(ui, |ui| {
-                                        for name in lib.library.components.keys() {
-                                            if ui
-                                                .selectable_label(
-                                                    self.selected_component == Some(name.clone()),
-                                                    name,
-                                                )
-                                                .clicked()
-                                            {
-                                                self.selected_component = Some(name.clone());
+                    if let Some(lib) = check {
+                        if let Some(library) = &lib.library {
+                            egui::TopBottomPanel::top("component select")
+                                .resizable(true)
+                                .show_inside(ui, |ui| {
+                                    ui.label("Components");
+                                    ui.separator();
+                                    egui::ScrollArea::vertical()
+                                        .id_source("component scroll")
+                                        .scroll_bar_visibility(
+                                            egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                        )
+                                        .auto_shrink([false, false])
+                                        .stick_to_right(true)
+                                        .show(ui, |ui| {
+                                            for name in library.components.keys() {
+                                                if ui
+                                                    .selectable_label(
+                                                        self.selected_component == Some(name.clone()),
+                                                        name,
+                                                    )
+                                                    .clicked()
+                                                {
+                                                    self.selected_component = Some(name.clone());
+                                                }
                                             }
-                                        }
-                                    });
-                            });
+                                        });
+                                });
+                            if let Some(component) = &self.selected_component {
+                                if let Some(component) = library.components.get(component) {
+                                    egui::TopBottomPanel::top("variant select")
+                                        .resizable(true)
+                                        .show_inside(ui, |ui| {
+                                            ui.label("Variants");
+                                            ui.separator();
+                                            egui::ScrollArea::vertical()
+                                                .id_source("variant scroll")
+                                                .scroll_bar_visibility(
+                                                    egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                                )
+                                                .auto_shrink([false, false])
+                                                .stick_to_right(true)
+                                                .show(ui, |ui| {
+                                                    for name in component.variants.keys() {
+                                                        if ui
+                                                            .selectable_label(
+                                                                self.selected_variant == Some(name.clone()),
+                                                                name,
+                                                            )
+                                                            .clicked()
+                                                        {
+                                                            self.selected_variant = Some(name.clone());
+                                                        }
+                                                    }
+                                                });
+                                        });
+                                }
+                            }
+                        }
                     }
                 }
             });
@@ -485,9 +520,11 @@ impl TrackedWindow<MyApp> for SchematicWindow {
         let mut component = None;
         if let Some(lib) = &self.selected_library {
             let lib = c.libraries.get(lib);
-            if let Some(Some(lib)) = lib {
-                if let Some(sch) = &self.selected_component {
-                    component = lib.library.components.get(sch);
+            if let Some(lib) = lib {
+                if let Some(library) = &lib.library {
+                    if let Some(sch) = &self.selected_component {
+                        component = library.components.get(sch);
+                    }
                 }
             }
         }

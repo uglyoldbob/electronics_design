@@ -150,14 +150,14 @@ impl SymbolDefinition {
 /// Separates stored and non-stored data for a symbol definition
 pub struct SymbolDefinitionHolder<'a> {
     /// The symbol being held
-    sym: &'a mut SymbolDefinition,
+    sym: &'a SymbolDefinition,
     /// The name of the containing library
     libname: String,
 }
 
 impl<'a> SymbolDefinitionHolder<'a> {
     /// Create a new symbol definition holder
-    pub fn new(sym: &'a mut SymbolDefinition, libname: String) -> Self {
+    pub fn new(sym: &'a SymbolDefinition, libname: String) -> Self {
         Self { sym, libname }
     }
 }
@@ -288,15 +288,10 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             stroke,
         );
 
-        if pr.clicked() {
-            match self.mm {
-                MouseMode::Selection => {
-                    let inp = ui.input(|i| i.modifiers);
-                    if !inp.shift && !inp.ctrl {
-                        self.selection.clear();
-                    }
-                }
-                _ => {}
+        if pr.clicked() && self.mm == &MouseMode::Selection {
+            let inp = ui.input(|i| i.modifiers);
+            if !inp.shift && !inp.ctrl {
+                self.selection.clear();
             }
         }
 

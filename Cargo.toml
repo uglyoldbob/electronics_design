@@ -15,6 +15,7 @@ futures = "0.3.28"
 interprocess = "1.2.1"
 lazy_static = "1.4.0"
 native-dialog = "0.6.4"
+open = "5.0.0"
 printpdf = "0.5.3"
 rfd = "0.11.4"
 serde = {version = "1.0.164", features = ["derive"]}

@@ -1,5 +1,6 @@
 //! The schematic window is used to view and manipulate a library of components and footprints.
 
+use egui_multiwin::egui::Sense;
 use egui_multiwin::egui_glow::EguiGlow;
 use egui_multiwin::{
     egui,
@@ -113,26 +114,28 @@ impl TrackedWindow<MyApp> for Library {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save all libraries").clicked() {
                         let mut no_errors = true;
-                        for libh in &mut c.libraries.values_mut().flatten() {
-                            if libh.can_save() {
-                                if let Err(e) = libh.save() {
+                        for libh in &mut c.libraries.values() {
+                            if let Some(library) = &libh.library {
+                                if libh.can_save() {
+                                    if let Err(e) = libh.save() {
+                                        no_errors = false;
+                                        let _e = native_dialog::MessageDialog::new()
+                                            .set_type(native_dialog::MessageType::Error)
+                                            .set_title(&format!(
+                                                "Failed to save {} library",
+                                                library.name
+                                            ))
+                                            .set_text(e.to_string().as_str())
+                                            .show_alert();
+                                    }
+                                } else {
                                     no_errors = false;
                                     let _e = native_dialog::MessageDialog::new()
                                         .set_type(native_dialog::MessageType::Error)
-                                        .set_title(&format!(
-                                            "Failed to save {} library",
-                                            libh.library.name
-                                        ))
-                                        .set_text(e.to_string().as_str())
+                                        .set_title("Failed to save library")
+                                        .set_text("No path to save library exists?")
                                         .show_alert();
                                 }
-                            } else {
-                                no_errors = false;
-                                let _e = native_dialog::MessageDialog::new()
-                                    .set_type(native_dialog::MessageType::Error)
-                                    .set_title("Failed to save library")
-                                    .set_text("No path to save library exists?")
-                                    .show_alert();
                             }
                         }
                         if no_errors {
@@ -258,16 +261,35 @@ impl TrackedWindow<MyApp> for Library {
                                             }
                                         });
                                         ui.separator();
-                                        for name in c.libraries.keys() {
-                                            if ui
-                                                .selectable_label(
-                                                    self.selected_library == Some(name.clone()),
-                                                    name.clone(),
-                                                )
-                                                .clicked()
+                                        for (name, lib) in &c.libraries {
+                                            let response = ui
+                                            .selectable_label(
+                                                self.selected_library == Some(name.clone()),
+                                                name.clone(),
+                                            );
+                                            if response.clicked()
                                             {
                                                 self.selected_library = Some(name.clone());
                                             }
+                                            response.context_menu(|ui| {
+                                                let mut haspath = false;
+                                                    if let Some(lh) = c.libraries.get(name) {
+                                                        if let Some(path) = &lh.path {
+                                                            let path = path.open_path();
+                                                            if let Some(mut path) = path {
+                                                                haspath = true;
+                                                                if ui.add(egui::Label::new("Goto").sense(Sense::click())).clicked() {
+                                                                    path.pop();
+                                                                    open::that_in_background(path);
+                                                                    ui.close_menu();
+                                                                }
+                                                            }
+                                                        }
+                                                }
+                                                if !haspath {
+                                                    ui.label("Cannot browse to");
+                                                }
+                                            });
                                         }
                                     });
                             });
@@ -277,7 +299,8 @@ impl TrackedWindow<MyApp> for Library {
 
                 if let Some(l) = &self.selected_library {
                     let check = c.libraries.get_mut(l);
-                    if let Some(Some(lib)) = check {
+                    if let Some(lib) = check {
+                        if let Some(library) = &lib.library {
                         egui::TopBottomPanel::top("symbol select")
                             .resizable(true)
                             .show_inside(ui, |ui| {
@@ -312,7 +335,7 @@ impl TrackedWindow<MyApp> for Library {
                                             }
                                         });
                                         ui.separator();
-                                        for name in lib.library.syms.keys() {
+                                        for name in library.syms.keys() {
                                             if ui
                                                 .selectable_label(
                                                     self.selected_thing == Some(Thing::Symbol(name.clone())),
@@ -358,7 +381,7 @@ impl TrackedWindow<MyApp> for Library {
                                             }
                                         });
                                         ui.separator();
-                                        for name in lib.library.components.keys() {
+                                        for name in library.components.keys() {
                                             if ui
                                                 .selectable_label(
                                                     self.selected_thing == Some(Thing::Component(name.clone())),
@@ -373,6 +396,7 @@ impl TrackedWindow<MyApp> for Library {
                                     });
                                     });
                             });
+                        }
                     }
                 }
 
@@ -385,9 +409,10 @@ impl TrackedWindow<MyApp> for Library {
 
         if let Some(l) = &self.selected_library {
             let check = c.libraries.get_mut(l);
-            if let Some(Some(lib)) = check {
-                if let Some(Thing::Symbol(sym)) = &self.selected_thing {
-                    egui::SidePanel::right("right panel").resizable(true).show(
+            if let Some(lib) = check {
+                if let Some(library) = &lib.library {
+                    if let Some(Thing::Symbol(sym)) = &self.selected_thing {
+                        egui::SidePanel::right("right panel").resizable(true).show(
                         &egui.egui_ctx,
                         |ui| {
                             egui::ScrollArea::vertical()
@@ -401,7 +426,7 @@ impl TrackedWindow<MyApp> for Library {
                                         0 => {}
                                         1 => {
                                             let sel = &self.selection[0];
-                                            let symbol = &lib.library.syms[sym];
+                                            let symbol = &library.syms[sym];
                                             match sel {
                                                 SymbolWidgetSelection::Text { textnum } => {
                                                     let t = &symbol.texts[*textnum];
@@ -481,6 +506,7 @@ impl TrackedWindow<MyApp> for Library {
                                 });
                         },
                     );
+                    }
                 }
             }
         }
@@ -495,13 +521,13 @@ impl TrackedWindow<MyApp> for Library {
         let mut component_changed = false;
         egui::CentralPanel::default().show(&egui.egui_ctx, |ui| {
             self.selected_library.as_ref().and_then(|l| {
-                c.libraries.get_mut(l).and_then(|a| {
-                    a.as_mut().and_then(|lh| {
-                        self.selected_thing.as_ref().map(|thing| {
-                            let lib = &mut lh.library;
+                c.libraries.get_mut(l).and_then(|lh| {
+                    self.selected_thing.as_ref().map(|thing| {
+                        let lib = &lh.library;
+                        if let Some(library) = lib {
                             match thing {
                                 Thing::Symbol(symname) => {
-                                    if let Some(sym) = lib.syms.get_mut(symname) {
+                                    if let Some(sym) = library.syms.get(symname) {
                                         let mut sym = crate::symbol::SymbolDefinitionHolder::new(
                                             sym,
                                             l.clone(),
@@ -536,7 +562,7 @@ impl TrackedWindow<MyApp> for Library {
                                     }
                                 }
                                 Thing::Component(comname) => {
-                                    if let Some(com) = lib.components.get_mut(comname) {
+                                    if let Some(com) = library.components.get(comname) {
                                         let mut cb = egui::ComboBox::from_label("Select variant");
                                         if let Some(selvar) = &self.selected_variant {
                                             if let Some(var) = com.variants.get(selvar) {
@@ -552,23 +578,30 @@ impl TrackedWindow<MyApp> for Library {
                                             }
                                         });
                                         if ui.button("Add variant").clicked() {
-                                            windows_to_create.push(crate::window::component_variant_name::Name::request(l.clone(), comname.clone()));
+                                            windows_to_create.push(
+                                            crate::window::component_variant_name::Name::request(
+                                                l.clone(),
+                                                comname.clone(),
+                                            ),
+                                        );
                                         }
                                         if let Some(selvar) = &self.selected_variant {
                                             if ui.button("Delete variant").clicked() {
-                                                actions.push(LibraryAction::DeleteComponentVariant {
-                                                    libname: l.clone(),
-                                                    comname: comname.clone(),
-                                                    varname: selvar.clone(),
-                                                    variant: None,
-                                                });
+                                                actions.push(
+                                                    LibraryAction::DeleteComponentVariant {
+                                                        libname: l.clone(),
+                                                        comname: comname.clone(),
+                                                        varname: selvar.clone(),
+                                                        variant: None,
+                                                    },
+                                                );
                                             }
                                             ui.separator();
                                         }
                                     }
                                 }
                             }
-                        })
+                        }
                     })
                 })
             });
@@ -586,24 +619,29 @@ impl TrackedWindow<MyApp> for Library {
             if let Some(component) = &mut component_modify {
                 if let Some(lib) = &self.selected_variant_library {
                     let olib = c.libraries.get(lib);
-                    if let Some(Some(libr)) = olib {
-                        let mut cb = egui::ComboBox::from_label("Select symbol from library");
-                        if let Some(l) = &component.symbol {
-                            cb = cb.selected_text(l.sym.clone());
-                        }
-                        cb.show_ui(ui, |ui| {
-                            for l in libr.library.syms.keys() {
-                                if ui.selectable_label(false, l).clicked() {
-                                    let lr = if Some(lib.clone()) == self.selected_library {
-                                        LibraryReference::ThisOne
-                                    } else {
-                                        LibraryReference::Another(lib.clone())
-                                    };
-                                    component.symbol = Some(crate::symbol::SymbolReference { lib: lr, sym: l.clone() });
-                                    component_changed = true;
-                                }
+                    if let Some(libr) = olib {
+                        if let Some(library) = &libr.library {
+                            let mut cb = egui::ComboBox::from_label("Select symbol from library");
+                            if let Some(l) = &component.symbol {
+                                cb = cb.selected_text(l.sym.clone());
                             }
-                        });
+                            cb.show_ui(ui, |ui| {
+                                for l in library.syms.keys() {
+                                    if ui.selectable_label(false, l).clicked() {
+                                        let lr = if Some(lib.clone()) == self.selected_library {
+                                            LibraryReference::ThisOne
+                                        } else {
+                                            LibraryReference::Another(lib.clone())
+                                        };
+                                        component.symbol = Some(crate::symbol::SymbolReference {
+                                            lib: lr,
+                                            sym: l.clone(),
+                                        });
+                                        component_changed = true;
+                                    }
+                                }
+                            });
+                        }
                     }
                 }
             }

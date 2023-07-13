@@ -66,19 +66,21 @@ impl TrackedWindow<MyApp> for Name {
                 egui::widgets::TextEdit::singleline(&mut self.name).hint_text("Component name");
             ui.add(te).request_focus();
             let lib = c.libraries.get_mut(&self.lib_name);
-            if let Some(Some(lib)) = lib {
-                if !self.name.is_empty() && lib.library.components.contains_key(&self.name) {
-                    ui.colored_label(egui::Color32::RED, "Component already exists");
-                } else if ui.button("Create").clicked()
-                    || ui.input(|i| i.key_pressed(egui::Key::Enter))
-                {
-                    if !lib.library.syms.contains_key(&self.name) {
-                        actionlog.push(LibraryAction::CreateComponent {
-                            libname: self.lib_name.clone(),
-                            comname: self.name.clone(),
-                        });
+            if let Some(lib) = lib {
+                if let Some(library) = &lib.library {
+                    if !self.name.is_empty() && library.components.contains_key(&self.name) {
+                        ui.colored_label(egui::Color32::RED, "Component already exists");
+                    } else if ui.button("Create").clicked()
+                        || ui.input(|i| i.key_pressed(egui::Key::Enter))
+                    {
+                        if !library.syms.contains_key(&self.name) {
+                            actionlog.push(LibraryAction::CreateComponent {
+                                libname: self.lib_name.clone(),
+                                comname: self.name.clone(),
+                            });
+                        }
+                        quit = true;
                     }
-                    quit = true;
                 }
             } else {
                 ui.label("Library does not exist for some reason");

@@ -111,7 +111,9 @@ fn main() {
     multi_window.add_font("computermodern".to_string(), fd);
 
     for l in crate::library::LibraryHolder::get_user_libraries(&ac.dirs) {
-        ac.libraries.insert(l.library.name.clone(), Some(l));
+        if let Some(lib) = &l.library {
+            ac.libraries.insert(lib.name.clone(), l);
+        }
     }
 
     if ac.args.len() > 1 {
@@ -138,7 +140,7 @@ pub struct MyApp {
     /// The current electronics schematic open for the program. This may become a Vec<SchematicHolder> in the future.
     schematic: Option<SchematicHolder>,
     /// The libraries for the current setup
-    libraries: HashMap<String, Option<library::LibraryHolder>>,
+    libraries: HashMap<String, library::LibraryHolder>,
     /// The undo log for all libraries
     library_log: undo::Record<crate::library::LibraryAction>,
     /// The directories for the system

@@ -657,13 +657,8 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             }
         }
 
-        if pr.clicked() {
-            match self.mm {
-                MouseMode::Selection => {
-                    *self.selection = None;
-                }
-                _ => {}
-            }
+        if pr.clicked() && self.mm == &MouseMode::Selection {
+            *self.selection = None;
         }
 
         if let MouseMode::NewText = &self.mm {

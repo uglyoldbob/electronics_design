@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::{
     component::{ComponentDefinition, ComponentVariant},
-    symbol::{LibraryReference, SymbolDefinition, SymbolReference},
+    symbol::{SymbolDefinition, SymbolReference},
 };
 
 /// The actions that can be done to a library
@@ -146,7 +146,7 @@ pub enum LibraryAction {
 }
 
 impl undo::Action for LibraryAction {
-    type Target = HashMap<String, Option<LibraryHolder>>;
+    type Target = HashMap<String, LibraryHolder>;
 
     type Output = ();
 
@@ -158,12 +158,14 @@ impl undo::Action for LibraryAction {
                 varname,
                 sref,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(comp) = target.library.components.get_mut(comname) {
-                        if let Some(var) = comp.variants.get_mut(varname) {
-                            let old = var.symbol.clone();
-                            var.symbol = sref.to_owned();
-                            *sref = old;
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(comp) = library.components.get_mut(comname) {
+                            if let Some(var) = comp.variants.get_mut(varname) {
+                                let old = var.symbol.clone();
+                                var.symbol = sref.to_owned();
+                                *sref = old;
+                            }
                         }
                     }
                 }
@@ -174,10 +176,12 @@ impl undo::Action for LibraryAction {
                 varname,
                 variant: _,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(comp) = target.library.components.get_mut(comname) {
-                        comp.variants
-                            .insert(varname.clone(), ComponentVariant::new(varname.clone()));
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(comp) = library.components.get_mut(comname) {
+                            comp.variants
+                                .insert(varname.clone(), ComponentVariant::new(varname.clone()));
+                        }
                     }
                 }
             }
@@ -187,18 +191,21 @@ impl undo::Action for LibraryAction {
                 varname,
                 variant,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(comp) = target.library.components.get_mut(comname) {
-                        *variant = comp.variants.remove(varname);
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(comp) = library.components.get_mut(comname) {
+                            *variant = comp.variants.remove(varname);
+                        }
                     }
                 }
             }
             LibraryAction::CreateComponent { libname, comname } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    target
-                        .library
-                        .components
-                        .insert(comname.clone(), ComponentDefinition::new(comname.clone()));
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        library
+                            .components
+                            .insert(comname.clone(), ComponentDefinition::new(comname.clone()));
+                    }
                 }
             }
             LibraryAction::DeleteComponent {
@@ -206,21 +213,21 @@ impl undo::Action for LibraryAction {
                 comname,
                 component,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    *component = target.library.components.remove(comname);
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        *component = library.components.remove(comname);
+                    }
                 }
             }
             LibraryAction::CreateNewLibrary { name, lib } => {
                 if let Some(l) = lib.take() {
-                    target.insert(name.clone(), Some(l));
+                    target.insert(name.clone(), l);
                 } else {
-                    target.insert(name.clone(), Some(LibraryHolder::new(name.clone())));
+                    target.insert(name.clone(), LibraryHolder::new(name.clone()));
                 }
             }
             LibraryAction::DeleteLibrary { name, old_lib } => {
-                target
-                    .remove(name)
-                    .and_then(|l| l.map(|l| old_lib.insert(l)));
+                let _ = old_lib.insert(target.remove(name).unwrap());
             }
             LibraryAction::MoveText {
                 libname,
@@ -228,9 +235,11 @@ impl undo::Action for LibraryAction {
                 textnum,
                 delta,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].location += *delta;
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts[*textnum].location += *delta;
+                        }
                     }
                 }
             }
@@ -239,9 +248,11 @@ impl undo::Action for LibraryAction {
                 symname,
                 text,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts.push(text.clone());
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts.push(text.clone());
+                        }
                     }
                 }
             }
@@ -252,9 +263,11 @@ impl undo::Action for LibraryAction {
                 old: _,
                 new,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].text = new.clone();
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts[*textnum].text = new.clone();
+                        }
                     }
                 }
             }
@@ -265,9 +278,11 @@ impl undo::Action for LibraryAction {
                 old: _,
                 new,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].color = *new;
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts[*textnum].color = *new;
+                        }
                     }
                 }
             }
@@ -276,16 +291,19 @@ impl undo::Action for LibraryAction {
                 symname,
                 symbol,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    *symbol = target.library.syms.remove(symname);
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        *symbol = library.syms.remove(symname);
+                    }
                 }
             }
             LibraryAction::CreateSymbol { libname, symname } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    target
-                        .library
-                        .syms
-                        .insert(symname.clone(), SymbolDefinition::new(symname.clone()));
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        library
+                            .syms
+                            .insert(symname.clone(), SymbolDefinition::new(symname.clone()));
+                    }
                 }
             }
             LibraryAction::CreatePin {
@@ -294,9 +312,11 @@ impl undo::Action for LibraryAction {
                 pin,
             } => {
                 if let Some(p) = pin.take() {
-                    if let Some(Some(target)) = target.get_mut(libname) {
-                        if let Some(sym) = target.library.syms.get_mut(symname) {
-                            sym.pins.push(p);
+                    if let Some(target) = target.get_mut(libname) {
+                        if let Some(library) = &mut target.library {
+                            if let Some(sym) = library.syms.get_mut(symname) {
+                                sym.pins.push(p);
+                            }
                         }
                     }
                 }
@@ -312,12 +332,14 @@ impl undo::Action for LibraryAction {
                 varname,
                 sref,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(comp) = target.library.components.get_mut(comname) {
-                        if let Some(var) = comp.variants.get_mut(varname) {
-                            let old = var.symbol.clone();
-                            var.symbol = sref.to_owned();
-                            *sref = old;
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(comp) = library.components.get_mut(comname) {
+                            if let Some(var) = comp.variants.get_mut(varname) {
+                                let old = var.symbol.clone();
+                                var.symbol = sref.to_owned();
+                                *sref = old;
+                            }
                         }
                     }
                 }
@@ -328,9 +350,11 @@ impl undo::Action for LibraryAction {
                 varname,
                 variant,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(comp) = target.library.components.get_mut(comname) {
-                        *variant = comp.variants.remove(varname);
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(comp) = library.components.get_mut(comname) {
+                            *variant = comp.variants.remove(varname);
+                        }
                     }
                 }
             }
@@ -340,21 +364,23 @@ impl undo::Action for LibraryAction {
                 varname: _,
                 variant,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(comp) = target.library.components.get_mut(comname) {
-                        if let Some(v) = variant.take() {
-                            comp.variants.insert(v.name.clone(), v);
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(comp) = library.components.get_mut(comname) {
+                            if let Some(v) = variant.take() {
+                                comp.variants.insert(v.name.clone(), v);
+                            }
                         }
                     }
                 }
             }
             LibraryAction::CreateNewLibrary { name, lib } => {
                 if let Some(l) = target.remove(name) {
-                    *lib = l;
+                    *lib = Some(l);
                 }
             }
             LibraryAction::DeleteLibrary { name, old_lib } => {
-                target.insert(name.clone(), old_lib.take());
+                target.insert(name.clone(), old_lib.take().unwrap());
             }
             LibraryAction::MoveText {
                 libname,
@@ -362,9 +388,11 @@ impl undo::Action for LibraryAction {
                 textnum,
                 delta,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].location -= *delta;
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts[*textnum].location -= *delta;
+                        }
                     }
                 }
             }
@@ -373,9 +401,11 @@ impl undo::Action for LibraryAction {
                 symname,
                 text: _,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts.pop();
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts.pop();
+                        }
                     }
                 }
             }
@@ -386,9 +416,11 @@ impl undo::Action for LibraryAction {
                 old,
                 new: _,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].text = old.clone();
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts[*textnum].text = old.clone();
+                        }
                     }
                 }
             }
@@ -399,9 +431,11 @@ impl undo::Action for LibraryAction {
                 old,
                 new: _,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        sym.texts[*textnum].color = *old;
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            sym.texts[*textnum].color = *old;
+                        }
                     }
                 }
             }
@@ -410,10 +444,12 @@ impl undo::Action for LibraryAction {
                 symname,
                 symbol,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
+                if let Some(target) = target.get_mut(libname) {
                     let sym = symbol.take();
-                    if let Some(s) = sym {
-                        target.library.syms.insert(symname.clone(), s);
+                    if let Some(library) = &mut target.library {
+                        if let Some(s) = sym {
+                            library.syms.insert(symname.clone(), s);
+                        }
                     }
                 }
             }
@@ -422,21 +458,27 @@ impl undo::Action for LibraryAction {
                 comname,
                 component,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
+                if let Some(target) = target.get_mut(libname) {
                     let sym = component.take();
-                    if let Some(s) = sym {
-                        target.library.components.insert(comname.clone(), s);
+                    if let Some(library) = &mut target.library {
+                        if let Some(s) = sym {
+                            library.components.insert(comname.clone(), s);
+                        }
                     }
                 }
             }
             LibraryAction::CreateSymbol { libname, symname } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    target.library.syms.remove(symname);
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        library.syms.remove(symname);
+                    }
                 }
             }
             LibraryAction::CreateComponent { libname, comname } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    target.library.components.remove(comname);
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        library.components.remove(comname);
+                    }
                 }
             }
             LibraryAction::CreatePin {
@@ -444,9 +486,11 @@ impl undo::Action for LibraryAction {
                 symname,
                 pin,
             } => {
-                if let Some(Some(target)) = target.get_mut(libname) {
-                    if let Some(sym) = target.library.syms.get_mut(symname) {
-                        *pin = sym.pins.pop();
+                if let Some(target) = target.get_mut(libname) {
+                    if let Some(library) = &mut target.library {
+                        if let Some(sym) = library.syms.get_mut(symname) {
+                            *pin = sym.pins.pop();
+                        }
                     }
                 }
             }
@@ -641,7 +685,7 @@ impl Library {
 /// Separates data to be stored from data that is not to be stored
 pub struct LibraryHolder {
     /// The library, containing stored data
-    pub library: Library,
+    pub library: Option<Library>,
     /// Where the library is stored
     pub path: Option<crate::general::StoragePath>,
     /// The file format to save the library in
@@ -673,7 +717,7 @@ impl LibraryHolder {
     /// Create a new blank library holder, with a new library
     pub fn new(name: String) -> Self {
         Self {
-            library: Library::new(name),
+            library: Some(Library::new(name)),
             path: None,
             format: crate::general::StorageFormat::default(),
         }
@@ -710,15 +754,15 @@ impl LibraryHolder {
                                 let format = crate::general::StorageFormat::default();
                                 match format.load::<Library>(&mut reader) {
                                     Ok(lib) => Some(LibraryHolder {
-                                        library: lib,
+                                        library: Some(lib),
                                         path: Some(path),
                                         format,
                                     }),
                                     Err(e) => {
                                         println!(
                                             "ERROR Loading library {} {}",
-                                            path.to_string(),
-                                            e.to_string()
+                                            path,
+                                            e
                                         );
                                         None
                                     }
@@ -727,8 +771,8 @@ impl LibraryHolder {
                             Err(e) => {
                                 println!(
                                     "ERROR Loading library {} {}",
-                                    path.to_string(),
-                                    e.to_string()
+                                    path,
+                                    e
                                 );
                                 None
                             }
