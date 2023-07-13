@@ -767,37 +767,25 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             let pos = ui.input(|i| i.pointer.interact_pos());
             if let Some(pos) = pos {
                 if let Some((variantref, library)) = self.component {
-                    let var = variantref.get_component(self.libs);
-                    if let Some(variant) = var {
-                        if let Some(sym) = &variant.symbol {
-                            let lib = self.libs.get(&sym.lib.get_name(library));
-                            if let Some(lib) = lib {
-                                if let Some(lib) = &lib.library {
-                                    if let Some(com) = lib.syms.get(&sym.sym) {
-                                        if pr.clicked() {
-                                            let pos2 = pos - origin.to_vec2();
-                                            actions.push(SchematicAction::AddComponentVariant {
-                                                pagenum: self.page,
-                                                var: ComponentVariantReference {
-                                                    lib: lib.name.to_owned(),
-                                                    com: variantref.com.to_owned(),
-                                                    var: variant.name.to_owned(),
-                                                    pos: crate::general::Coordinates::from_pos2(
-                                                        pos2, *self.zoom,
-                                                    ),
-                                                },
-                                            });
-                                        } else {
-                                            com.draw(
-                                                *self.zoom,
-                                                zoom_origin,
-                                                &pntr,
-                                                (pos - origin.to_vec2()),
-                                            );
-                                        }
-                                    }
-                                }
-                            }
+                    let sd = variantref.get_symbol(self.libs, library);
+                    if let Some(symdef) = sd {
+                        let pos2 = (pos - zoom_origin).to_pos2();
+                        if pr.clicked() {
+                            let mut vr = variantref.clone();
+                            vr.pos = crate::general::Coordinates::from_pos2(
+                                (pos - origin).to_pos2(), *self.zoom,
+                            );
+                            actions.push(SchematicAction::AddComponentVariant {
+                                pagenum: self.page,
+                                var: vr,
+                            });
+                        } else {
+                            symdef.draw(
+                                *self.zoom,
+                                zoom_origin,
+                                &pntr,
+                                pos2,
+                            );
                         }
                     }
                 }

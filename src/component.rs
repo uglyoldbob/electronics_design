@@ -2,7 +2,10 @@
 
 use std::collections::HashMap;
 
-use crate::library::LibraryHolder;
+use crate::{
+    library::{Library, LibraryHolder},
+    symbol::SymbolDefinition,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[non_exhaustive]
@@ -19,6 +22,7 @@ pub struct ComponentVariantReference {
 }
 
 impl ComponentVariantReference {
+    /// Get the componentvariant that the reference refers to
     pub fn get_component<'a>(
         &self,
         libs: &'a HashMap<String, LibraryHolder>,
@@ -28,6 +32,25 @@ impl ComponentVariantReference {
             if let Some(lib) = &libh.library {
                 if let Some(component) = lib.components.get(&self.com) {
                     ret = component.variants.get(&self.var);
+                }
+            }
+        }
+        ret
+    }
+
+    ///Get the symbol that the component variant uses
+    pub fn get_symbol<'a>(
+        &self,
+        libs: &'a HashMap<String, LibraryHolder>,
+        library: &'a Library,
+    ) -> Option<&'a SymbolDefinition> {
+        let mut ret = None;
+        if let Some(component) = self.get_component(libs) {
+            if let Some(sym) = &component.symbol {
+                if let Some(libh) = libs.get(&sym.lib.get_name(&library)) {
+                    if let Some(lib) = &libh.library {
+                        ret = lib.syms.get(&sym.sym);
+                    }
                 }
             }
         }
