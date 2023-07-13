@@ -7,6 +7,7 @@ use egui_multiwin::{
     tracked_window::{RedrawResponse, TrackedWindow},
 };
 
+use crate::component::ComponentVariantReference;
 use crate::schematic::{MouseMode, Schematic, SchematicAction, SchematicHolder, SchematicWidget};
 use crate::MyApp;
 
@@ -213,8 +214,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                         if let Some(s) = &mut c.schematic {
                             if s.has_path() {
                                 if let Err(e) = s.save() {
-                                    let s: String =
-                                        format!("Unable to save file {}", e);
+                                    let s: String = format!("Unable to save file {}", e);
                                     native_dialog::MessageDialog::new()
                                         .set_type(native_dialog::MessageType::Error)
                                         .set_title("ERROR")
@@ -338,6 +338,10 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                         .on_hover_ui(|ui| {
                             ui.label("Create Text mode");
                         });
+                    ui.selectable_value(&mut self.mm, MouseMode::NewComponent, "C")
+                        .on_hover_ui(|ui| {
+                            ui.label("Add component mode");
+                        });
                 });
             }
         });
@@ -425,6 +429,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                                                             .clicked()
                                                         {
                                                             self.selected_variant = Some(name.clone());
+                                                            self.mm = MouseMode::NewComponent;
                                                         }
                                                     }
                                                 });
@@ -517,13 +522,30 @@ impl TrackedWindow<MyApp> for SchematicWindow {
             }
         }
 
-        let mut component = None;
-        if let Some(lib) = &self.selected_library {
-            let lib = c.libraries.get(lib);
+        let mut component: Option<(
+            crate::component::ComponentVariantReference,
+            &crate::library::Library,
+        )> = None;
+        if let Some(libname) = &self.selected_library {
+            let lib = c.libraries.get(libname);
             if let Some(lib) = lib {
                 if let Some(library) = &lib.library {
                     if let Some(sch) = &self.selected_component {
-                        component = library.components.get(sch);
+                        if let Some(com) = library.components.get(sch) {
+                            if let Some(var) = &self.selected_variant {
+                                if let Some(com) = com.variants.get(var) {
+                                    component = Some((
+                                        ComponentVariantReference {
+                                            lib: libname.to_owned(),
+                                            com: sch.to_owned(),
+                                            var: var.to_owned(),
+                                            pos: crate::general::Coordinates::Inches(0.0, 0.0),
+                                        },
+                                        library,
+                                    ));
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -538,6 +560,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                     &mut self.origin,
                     &mut self.zoom,
                     component,
+                    &c.libraries,
                 );
                 let resp = ui.add(sch);
                 if resp.dragged_by(egui::PointerButton::Middle) {

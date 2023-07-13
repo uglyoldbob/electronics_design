@@ -1,8 +1,13 @@
 //! The schematic module covers code related to a electronics schematic, consisting of one or more pages of stuff.
 
+use std::collections::HashMap;
+
 use egui_multiwin::egui;
 
-use crate::{component::ComponentDefinition, general::StoragePath, symbol::Symbol};
+use crate::{
+    component::ComponentVariantReference, general::StoragePath, library::LibraryHolder,
+    symbol::Symbol,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq)]
 #[serde(tag = "type", content = "args")]
@@ -55,7 +60,7 @@ pub struct TextOnPage {
 /// A single page of an electronic schematic
 pub struct Page {
     /// The symbols on the page
-    pub syms: Vec<Symbol>,
+    pub syms: Vec<ComponentVariantReference>,
     /// The free text items on the page
     pub texts: Vec<TextOnPage>,
     /// The physical size of the page
@@ -189,17 +194,6 @@ pub enum SchematicAction {
         /// The delta to move by
         delta: crate::general::Coordinates,
     },
-    /// Move the text of a symbol on a schematic page by a certain amount
-    MoveSymbolText {
-        /// The page number
-        pagenum: usize,
-        /// The symbol number
-        symbolnum: usize,
-        /// The text number
-        textnum: usize,
-        /// The delta to move by
-        delta: crate::general::Coordinates,
-    },
     /// Create a new text for a schematic
     CreateText {
         /// The page number
@@ -229,6 +223,13 @@ pub enum SchematicAction {
         /// The new text
         new: Colors,
     },
+    /// Add a component variant to the schematic
+    AddComponentVariant {
+        /// The page number
+        pagenum: usize,
+        /// The variant
+        var: ComponentVariantReference,
+    },
 }
 
 impl undo::Action for SchematicAction {
@@ -238,20 +239,15 @@ impl undo::Action for SchematicAction {
 
     fn apply(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
+            SchematicAction::AddComponentVariant { pagenum, var } => {
+                target.pages[*pagenum].syms.push(var.to_owned());
+            }
             SchematicAction::MoveText {
                 pagenum,
                 textnum,
                 delta,
             } => {
                 target.pages[*pagenum].texts[*textnum].location += *delta;
-            }
-            SchematicAction::MoveSymbolText {
-                pagenum,
-                symbolnum,
-                textnum,
-                delta,
-            } => {
-                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].location += *delta;
             }
             SchematicAction::CreateText { pagenum, text } => {
                 target.pages[*pagenum].texts.push(text.clone());
@@ -277,20 +273,15 @@ impl undo::Action for SchematicAction {
 
     fn undo(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
+            SchematicAction::AddComponentVariant { pagenum, var } => {
+                *var = target.pages[*pagenum].syms.pop().unwrap();
+            }
             SchematicAction::MoveText {
                 pagenum,
                 textnum,
                 delta,
             } => {
                 target.pages[*pagenum].texts[*textnum].location -= *delta;
-            }
-            SchematicAction::MoveSymbolText {
-                pagenum,
-                symbolnum,
-                textnum,
-                delta,
-            } => {
-                target.pages[*pagenum].syms[*symbolnum].texts[*textnum].location -= *delta;
             }
             SchematicAction::CreateText { pagenum, text: _ } => {
                 target.pages[*pagenum].texts.pop();
@@ -319,6 +310,7 @@ impl undo::Action for SchematicAction {
         Self: Sized,
     {
         match self {
+            SchematicAction::AddComponentVariant { pagenum: _, var: _ } => undo::Merged::No(other),
             SchematicAction::MoveText {
                 pagenum,
                 textnum,
@@ -331,33 +323,6 @@ impl undo::Action for SchematicAction {
                 } = other.clone()
                 {
                     if *pagenum == pn2 && *textnum == tn2 {
-                        if (*delta + delta2).less_than_epsilon() {
-                            undo::Merged::Annul
-                        } else {
-                            *delta += delta2;
-                            undo::Merged::Yes
-                        }
-                    } else {
-                        undo::Merged::No(other)
-                    }
-                } else {
-                    undo::Merged::No(other)
-                }
-            }
-            SchematicAction::MoveSymbolText {
-                pagenum,
-                symbolnum,
-                textnum,
-                delta,
-            } => {
-                if let SchematicAction::MoveSymbolText {
-                    pagenum: pn2,
-                    symbolnum: sn2,
-                    textnum: tn2,
-                    delta: delta2,
-                } = other
-                {
-                    if *pagenum == pn2 && *symbolnum == sn2 && *textnum == tn2 {
                         if (*delta + delta2).less_than_epsilon() {
                             undo::Merged::Annul
                         } else {
@@ -533,7 +498,12 @@ pub struct SchematicWidget<'a> {
     /// The zoom factor
     zoom: &'a mut f32,
     /// The component that a user has selected for adding to the schematic
-    component: Option<&'a ComponentDefinition>,
+    component: Option<(
+        crate::component::ComponentVariantReference,
+        &'a crate::library::Library,
+    )>,
+    /// The libraries for the application
+    libs: &'a HashMap<String, LibraryHolder>,
 }
 
 impl<'a> SchematicWidget<'a> {
@@ -544,7 +514,11 @@ impl<'a> SchematicWidget<'a> {
         sel: &'a mut Option<SchematicSelection>,
         origin: &'a mut crate::general::Coordinates,
         zoom: &'a mut f32,
-        component: Option<&'a ComponentDefinition>,
+        component: Option<(
+            crate::component::ComponentVariantReference,
+            &'a crate::library::Library,
+        )>,
+        libs: &'a HashMap<String, LibraryHolder>,
     ) -> Self {
         Self {
             sch,
@@ -554,6 +528,7 @@ impl<'a> SchematicWidget<'a> {
             origin,
             zoom,
             component,
+            libs,
         }
     }
 }
@@ -758,43 +733,25 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
         let mut actions = Vec::new();
 
         for sch in &mut cur_page.syms {
-            for (i, t) in sch.texts.iter().enumerate() {
-                let pos = t.location.get_pos2(*self.zoom, egui::pos2(0.0, 0.0));
-                let align = egui::Align2::LEFT_BOTTOM;
-                let font = egui::FontId {
-                    size: t.size.get_screen(*self.zoom, zoom_origin),
-                    family: egui::FontFamily::Name("computermodern".into()),
-                };
-                let temp = area.left_top() + pos.to_vec2();
-                let color = t
-                    .color
-                    .get_color32(crate::general::ColorMode::ScreenModeDark);
-                let r = pntr.text(temp, align, t.text.clone(), font, color);
-                let response = ui.interact(r, egui::Id::new(42424242 + i), sense);
-                match self.mm {
-                    MouseMode::NewText => {}
-                    MouseMode::NewComponent => {}
-                    MouseMode::Selection => {
-                        if response.clicked() {
-                            println!("Clicked");
+            let mut sym = None;
+            if let Some(lib) = self.libs.get(&sch.lib) {
+                if let Some(lib) = &lib.library {
+                    if let Some(component) = lib.components.get(&sch.com) {
+                        if let Some(variant) = component.variants.get(&sch.var) {
+                            if let Some(symbol) = &variant.symbol {
+                                sym = Some((symbol, lib));
+                            }
                         }
                     }
-                    MouseMode::TextDrag => {
-                        if response.clicked() {
-                            println!("Clicked");
-                        }
-                        if response.dragged() {
-                            let amount = response.drag_delta();
-                            let a = SchematicAction::MoveSymbolText {
-                                pagenum: self.page,
-                                symbolnum: i,
-                                textnum: i,
-                                delta: crate::general::Coordinates::from_pos2(
-                                    amount.to_pos2(),
-                                    *self.zoom,
-                                ),
-                            };
-                            actions.push(a);
+                }
+            }
+            if let Some((sym, lib)) = sym {
+                let libname = sym.lib.get_name(&lib);
+                if let Some(lib) = self.libs.get(&libname) {
+                    if let Some(lib) = &lib.library {
+                        if let Some(symbol) = lib.syms.get(&sym.sym) {
+                            let pos = sch.pos.get_pos2(*self.zoom, origin) - zoom_origin.to_vec2();
+                            symbol.draw(*self.zoom, zoom_origin, &pntr, pos);
                         }
                     }
                 }
@@ -809,11 +766,39 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
         if let MouseMode::NewComponent = &self.mm {
             let pos = ui.input(|i| i.pointer.interact_pos());
             if let Some(pos) = pos {
-                if let Some(component) = self.component {
-                    if pr.clicked() {
-                        let pos2 = pos - area.left_top();
-                        todo!();
-                    } else {
+                if let Some((variantref, library)) = self.component {
+                    let var = variantref.get_component(self.libs);
+                    if let Some(variant) = var {
+                        if let Some(sym) = &variant.symbol {
+                            let lib = self.libs.get(&sym.lib.get_name(library));
+                            if let Some(lib) = lib {
+                                if let Some(lib) = &lib.library {
+                                    if let Some(com) = lib.syms.get(&sym.sym) {
+                                        if pr.clicked() {
+                                            let pos2 = pos - origin.to_vec2();
+                                            actions.push(SchematicAction::AddComponentVariant {
+                                                pagenum: self.page,
+                                                var: ComponentVariantReference {
+                                                    lib: lib.name.to_owned(),
+                                                    com: variantref.com.to_owned(),
+                                                    var: variant.name.to_owned(),
+                                                    pos: crate::general::Coordinates::from_pos2(
+                                                        pos2, *self.zoom,
+                                                    ),
+                                                },
+                                            });
+                                        } else {
+                                            com.draw(
+                                                *self.zoom,
+                                                zoom_origin,
+                                                &pntr,
+                                                (pos - origin.to_vec2()),
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -1,6 +1,6 @@
 //! This module contains definitions and code pertaining to schematic symbols and their definitions
 
-use crate::library::LibraryAction;
+use crate::library::{Library, LibraryAction};
 use crate::schematic::TextOnPage;
 use egui_multiwin::egui;
 
@@ -113,6 +113,15 @@ pub enum LibraryReference {
     Another(String),
 }
 
+impl LibraryReference {
+    pub fn get_name(&self, r: &Library) -> String {
+        match self {
+            Self::ThisOne => r.name.to_owned(),
+            Self::Another(s) => s.to_owned(),
+        }
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 #[non_exhaustive]
 /// A reference to a symbol in a library somewhere
@@ -144,6 +153,38 @@ impl SymbolDefinition {
             texts: Vec::new(),
             pins: Vec::new(),
         }
+    }
+    /// Draw the symbol on the specified painter
+    pub fn draw(
+        &self,
+        zoom: f32,
+        zoom_center: egui_multiwin::egui::Pos2,
+        pntr: &egui::Painter,
+        pos: egui::Pos2,
+    ) -> Vec<egui::Rect> {
+        let mut response = vec![];
+        for t in &self.texts {
+            let pos = t.location.get_pos2(zoom, zoom_center).to_vec2() + pos.to_vec2();
+            let align = egui::Align2::LEFT_BOTTOM;
+            let font = egui::FontId {
+                size: t.size.get_screen(zoom, zoom_center),
+                family: egui::FontFamily::Monospace,
+            };
+            let temp = pos.to_pos2();
+            let color = t
+                .color
+                .get_color32(crate::general::ColorMode::ScreenModeDark);
+            let r = pntr.text(temp, align, t.text.clone(), font, color);
+            response.push(r);
+        }
+
+        for p in &self.pins {
+            let pos = p.location.get_pos2(zoom, zoom_center).to_vec2() + pos.to_vec2();
+            let temp = pos;
+            let mut rects = p.draw(zoom, zoom_center, &pntr, temp.to_pos2());
+            response.append(&mut rects);
+        }
+        response
     }
 }
 

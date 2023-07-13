@@ -759,21 +759,13 @@ impl LibraryHolder {
                                         format,
                                     }),
                                     Err(e) => {
-                                        println!(
-                                            "ERROR Loading library {} {}",
-                                            path,
-                                            e
-                                        );
+                                        println!("ERROR Loading library {} {}", path, e);
                                         None
                                     }
                                 }
                             }
                             Err(e) => {
-                                println!(
-                                    "ERROR Loading library {} {}",
-                                    path,
-                                    e
-                                );
+                                println!("ERROR Loading library {} {}", path, e);
                                 None
                             }
                         }

@@ -74,12 +74,15 @@ impl StoragePath {
     }
 }
 
-
 impl std::fmt::Display for StoragePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            StoragePath::LocalFilesystem(p) => format!("Local Filesystem {}", p),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                StoragePath::LocalFilesystem(p) => format!("Local Filesystem {}", p),
+            }
+        )
     }
 }
 
@@ -119,11 +122,15 @@ impl From<StoragePathError> for StorageLoadError {
 
 impl std::fmt::Display for StorageLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::IoError(e) => e.to_string(),
-            Self::DeserializeError(e) => e.clone(),
-            Self::StoragePathError(s) => s.to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::IoError(e) => e.to_string(),
+                Self::DeserializeError(e) => e.clone(),
+                Self::StoragePathError(s) => s.to_string(),
+            }
+        )
     }
 }
 
@@ -142,9 +149,13 @@ impl From<std::io::Error> for StoragePathError {
 
 impl std::fmt::Display for StoragePathError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::IoError(e) => e.to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::IoError(e) => e.to_string(),
+            }
+        )
     }
 }
 
@@ -172,11 +183,15 @@ impl From<StoragePathError> for StorageSaveError {
 
 impl std::fmt::Display for StorageSaveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::IoError(e) => e.to_string(),
-            Self::SerializeError(e) => e.clone(),
-            Self::StoragePathError(e) => e.to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::IoError(e) => e.to_string(),
+                Self::SerializeError(e) => e.clone(),
+                Self::StoragePathError(e) => e.to_string(),
+            }
+        )
     }
 }
 
