@@ -450,6 +450,41 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                 if let Some(sch) = &mut c.schematic {
                     if let Some(sel) = &self.selection {
                         match sel {
+                            crate::schematic::SchematicSelection::Symbol { page, sym } => {
+                                let var_ref = &sch.schematic.pages[*page].syms[*sym];
+                                let units = var_ref.pos.get_units(c.units);
+                                let mut xstr = format!("{:.4}", units.0);
+                                ui.horizontal(|ui| {
+                                    ui.label("X ");
+                                    ui.add(egui::TextEdit::singleline(&mut xstr));
+                                });
+                                if let Ok(x) = xstr.parse::<f32>() {
+                                    actionlog.push(SchematicAction::MoveSymbol {
+                                        pagenum: *page,
+                                        symnum: *sym,
+                                        delta: crate::general::Coordinates::from_pos2(
+                                            egui::pos2(x - units.0, 0.0),
+                                            1.0,
+                                        ),
+                                    });
+                                }
+                                let mut ystr = format!("{:.4}", units.1);
+                                ui.horizontal(|ui| {
+                                    ui.label("Y ");
+                                    ui.add(egui::TextEdit::singleline(&mut ystr));
+                                });
+                                if let Ok(y) = ystr.parse::<f32>() {
+                                    actionlog.push(SchematicAction::MoveSymbol {
+                                        pagenum: *page,
+                                        symnum: *sym,
+                                        delta: crate::general::Coordinates::from_pos2(
+                                            egui::pos2(0.0, units.1 - y),
+                                            1.0,
+                                        ),
+                                    });
+                                }
+                                ui.label("A symbol has been selected");
+                            }
                             crate::schematic::SchematicSelection::Text { page, textnum } => {
                                 let t = &sch.schematic.pages[*page].texts[*textnum];
                                 ui.label("Text Properties");
@@ -522,31 +557,16 @@ impl TrackedWindow<MyApp> for SchematicWindow {
             }
         }
 
-        let mut component: Option<(
-            crate::component::ComponentVariantReference,
-            &crate::library::Library,
-        )> = None;
+        let mut component: Option<crate::component::ComponentVariantReference> = None;
         if let Some(libname) = &self.selected_library {
-            let lib = c.libraries.get(libname);
-            if let Some(lib) = lib {
-                if let Some(library) = &lib.library {
-                    if let Some(sch) = &self.selected_component {
-                        if let Some(com) = library.components.get(sch) {
-                            if let Some(var) = &self.selected_variant {
-                                if let Some(com) = com.variants.get(var) {
-                                    component = Some((
-                                        ComponentVariantReference {
-                                            lib: libname.to_owned(),
-                                            com: sch.to_owned(),
-                                            var: var.to_owned(),
-                                            pos: crate::general::Coordinates::Inches(0.0, 0.0),
-                                        },
-                                        library,
-                                    ));
-                                }
-                            }
-                        }
-                    }
+            if let Some(sch) = &self.selected_component {
+                if let Some(var) = &self.selected_variant {
+                    component = Some(ComponentVariantReference {
+                        lib: libname.to_owned(),
+                        com: sch.to_owned(),
+                        var: var.to_owned(),
+                        pos: crate::general::Coordinates::Inches(0.0, 0.0),
+                    });
                 }
             }
         }

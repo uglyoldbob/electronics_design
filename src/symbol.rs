@@ -59,33 +59,6 @@ impl Pin {
         );
         vec![rect]
     }
-
-    /// interacts with ui elements for a pin, combining them all into a single response
-    fn respond(ui: &mut egui::Ui, id: String, rects: Vec<egui::Rect>) -> egui::Response {
-        let mut resp = ui.interact(
-            rects[0],
-            egui::Id::from(format!("{}.{}", id, 0)),
-            egui::Sense {
-                click: true,
-                drag: true,
-                focusable: true,
-            },
-        );
-        for (num, r) in rects.iter().skip(1).enumerate() {
-            let num = num + 1;
-            let resp2 = ui.interact(
-                *r,
-                egui::Id::from(format!("{}.{}", id, num)),
-                egui::Sense {
-                    click: true,
-                    drag: true,
-                    focusable: true,
-                },
-            );
-            resp = resp.union(resp2);
-        }
-        resp
-    }
 }
 
 /// Defines the mode for mouse interaction for symbols
@@ -114,6 +87,7 @@ pub enum LibraryReference {
 }
 
 impl LibraryReference {
+    /// Return the name of the referenced library
     pub fn get_name(&self, r: &Library) -> String {
         match self {
             Self::ThisOne => r.name.to_owned(),
@@ -396,7 +370,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             let pos = p.location.get_pos2(*self.zoom, origin).to_vec2();
             let temp = pos;
             let rects = p.draw(*self.zoom, zoom_origin, &pntr, temp.to_pos2());
-            let response = crate::symbol::Pin::respond(ui, format!("pin {}", i), rects);
+            let response = crate::general::respond(ui, format!("pin {}", i), rects);
             let response = match self.mm {
                 MouseMode::NewPin => response,
                 MouseMode::NewText => response,

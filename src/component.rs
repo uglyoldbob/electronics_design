@@ -38,18 +38,21 @@ impl ComponentVariantReference {
         ret
     }
 
-    ///Get the symbol that the component variant uses
+    /// Get a SymbolDefinition from the componentvariantreference.
     pub fn get_symbol<'a>(
         &self,
         libs: &'a HashMap<String, LibraryHolder>,
-        library: &'a Library,
     ) -> Option<&'a SymbolDefinition> {
         let mut ret = None;
         if let Some(component) = self.get_component(libs) {
             if let Some(sym) = &component.symbol {
-                if let Some(libh) = libs.get(&sym.lib.get_name(&library)) {
-                    if let Some(lib) = &libh.library {
-                        ret = lib.syms.get(&sym.sym);
+                if let Some(libraryh) = libs.get(&self.lib) {
+                    if let Some(library) = &libraryh.library {
+                        if let Some(libh) = libs.get(&sym.lib.get_name(library)) {
+                            if let Some(lib) = &libh.library {
+                                ret = lib.syms.get(&sym.sym);
+                            }
+                        }
                     }
                 }
             }

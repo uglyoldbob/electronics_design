@@ -1,5 +1,33 @@
 //! This module stores general usage items.
 
+use egui_multiwin::egui;
+/// interacts with ui elements (rectangles), combining them all into a single response
+pub fn respond(ui: &mut egui::Ui, id: String, rects: Vec<egui::Rect>) -> egui::Response {
+    let mut resp = ui.interact(
+        rects[0],
+        egui::Id::from(format!("{}.{}", id, 0)),
+        egui::Sense {
+            click: true,
+            drag: true,
+            focusable: true,
+        },
+    );
+    for (num, r) in rects.iter().skip(1).enumerate() {
+        let num = num + 1;
+        let resp2 = ui.interact(
+            *r,
+            egui::Id::from(format!("{}.{}", id, num)),
+            egui::Sense {
+                click: true,
+                drag: true,
+                focusable: true,
+            },
+        );
+        resp = resp.union(resp2);
+    }
+    resp
+}
+
 /// The kinds of file formats that can be used for various files that are exported
 #[derive(Clone)]
 pub enum StorageFormat {
