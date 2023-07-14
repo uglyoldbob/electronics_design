@@ -730,7 +730,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 .get_color32(crate::general::ColorMode::ScreenModeDark);
             let r = pntr.text(pos, align, t.text.clone(), font, color);
             let id = egui::Id::new(1 + i);
-            let response = ui.interact(r, id, sense);
+            let response = ui.interact(r.intersect(area), id, sense);
             let response = match self.mm {
                 MouseMode::NewComponent => response,
                 MouseMode::NewText => response,
@@ -802,7 +802,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                             let pos = sch.pos.get_pos2(*self.zoom, origin) - zoom_origin.to_vec2();
                             let rects = symbol.draw(*self.zoom, zoom_origin, &pntr, pos);
                             let response =
-                                crate::general::respond(ui, format!("symbol{}", i), rects);
+                                crate::general::respond(ui, format!("symbol{}", i), rects, area);
                             let response = match &self.mm {
                                 MouseMode::Selection => {
                                     if response.clicked() {

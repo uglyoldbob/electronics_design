@@ -370,7 +370,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
             let pos = p.location.get_pos2(*self.zoom, origin).to_vec2();
             let temp = pos;
             let rects = p.draw(*self.zoom, zoom_origin, &pntr, temp.to_pos2());
-            let response = crate::general::respond(ui, format!("pin {}", i), rects);
+            let response = crate::general::respond(ui, format!("pin {}", i), rects, area);
             let response = match self.mm {
                 MouseMode::NewPin => response,
                 MouseMode::NewText => response,
