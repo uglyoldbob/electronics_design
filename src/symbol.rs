@@ -23,6 +23,7 @@ impl Pin {
         zoom_center: egui_multiwin::egui::Pos2,
         pntr: &egui::Painter,
         pos: egui::Pos2,
+        bounds: egui::Rect,
     ) -> Vec<egui::Rect> {
         let mult = crate::general::Length::Inches(0.1).get_screen(zoom, zoom_center);
         let pos2 = pos
@@ -57,7 +58,12 @@ impl Pin {
                     .get_color32(crate::general::ColorMode::ScreenModeDark),
             },
         );
-        vec![rect]
+        let r2 = rect.intersect(bounds);
+        if r2.is_positive() {
+            vec![r2]
+        } else {
+            vec![]
+        }
     }
 }
 
@@ -135,6 +141,7 @@ impl SymbolDefinition {
         zoom_center: egui_multiwin::egui::Pos2,
         pntr: &egui::Painter,
         pos: egui::Pos2,
+        bounds: egui::Rect,
     ) -> Vec<egui::Rect> {
         let mut response = vec![];
         for t in &self.texts {
@@ -149,13 +156,16 @@ impl SymbolDefinition {
                 .color
                 .get_color32(crate::general::ColorMode::ScreenModeDark);
             let r = pntr.text(temp, align, t.text.clone(), font, color);
-            response.push(r);
+            let rcheck = r.intersect(bounds);
+            if rcheck.is_positive() {
+                response.push(rcheck);
+            }
         }
 
         for p in &self.pins {
             let pos = p.location.get_pos2(zoom, zoom_center).to_vec2() + pos.to_vec2();
             let temp = pos;
-            let mut rects = p.draw(zoom, zoom_center, &pntr, temp.to_pos2());
+            let mut rects = p.draw(zoom, zoom_center, &pntr, temp.to_pos2(), bounds);
             response.append(&mut rects);
         }
         response
@@ -322,55 +332,58 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                 .color
                 .get_color32(crate::general::ColorMode::ScreenModeDark);
             let r = pntr.text(temp, align, t.text.clone(), font, color);
+            let r = r.intersect(area);
             let id = egui::Id::new(1 + i);
-            let response = ui.interact(r, id, sense);
-            let response = match self.mm {
-                MouseMode::NewPin => response,
-                MouseMode::NewText => response,
-                MouseMode::Selection => {
-                    if response.clicked() {
-                        let inp = ui.input(|i| i.modifiers);
-                        if !inp.shift && !inp.ctrl {
-                            self.selection.clear();
+            if r.is_positive() {
+                let response = ui.interact(r, id, sense);
+                let response = match self.mm {
+                    MouseMode::NewPin => response,
+                    MouseMode::NewText => response,
+                    MouseMode::Selection => {
+                        if response.clicked() {
+                            let inp = ui.input(|i| i.modifiers);
+                            if !inp.shift && !inp.ctrl {
+                                self.selection.clear();
+                            }
+                            self.selection
+                                .push(SymbolWidgetSelection::Text { textnum: i });
                         }
-                        self.selection
-                            .push(SymbolWidgetSelection::Text { textnum: i });
+                        response.context_menu(|ui| {
+                            if ui.button("Properties").clicked() {
+                                ui.close_menu();
+                            }
+                        })
                     }
-                    response.context_menu(|ui| {
-                        if ui.button("Properties").clicked() {
-                            ui.close_menu();
+                    MouseMode::TextDrag => {
+                        if response.dragged_by(egui::PointerButton::Primary) {
+                            let amount = response.drag_delta() / *self.zoom;
+                            let a = LibraryAction::MoveText {
+                                libname: self.sym.libname.clone(),
+                                symname: self.sym.sym.name.clone(),
+                                textnum: i,
+                                delta: crate::general::Coordinates::from_pos2(
+                                    amount.to_pos2(),
+                                    *self.zoom,
+                                ),
+                            };
+                            self.actions.push(a);
                         }
-                    })
-                }
-                MouseMode::TextDrag => {
-                    if response.dragged_by(egui::PointerButton::Primary) {
-                        let amount = response.drag_delta() / *self.zoom;
-                        let a = LibraryAction::MoveText {
-                            libname: self.sym.libname.clone(),
-                            symname: self.sym.sym.name.clone(),
-                            textnum: i,
-                            delta: crate::general::Coordinates::from_pos2(
-                                amount.to_pos2(),
-                                *self.zoom,
-                            ),
-                        };
-                        self.actions.push(a);
+                        response.context_menu(|ui| {
+                            if ui.button("Properties").clicked() {
+                                ui.close_menu();
+                            }
+                        })
                     }
-                    response.context_menu(|ui| {
-                        if ui.button("Properties").clicked() {
-                            ui.close_menu();
-                        }
-                    })
-                }
-            };
-            pr = pr.union(response);
+                };
+                pr = pr.union(response);
+            }
         }
 
         for (i, p) in self.sym.sym.pins.iter().enumerate() {
             let pos = p.location.get_pos2(*self.zoom, origin).to_vec2();
             let temp = pos;
-            let rects = p.draw(*self.zoom, zoom_origin, &pntr, temp.to_pos2());
-            let response = crate::general::respond(ui, format!("pin {}", i), rects, area);
+            let rects = p.draw(*self.zoom, zoom_origin, &pntr, temp.to_pos2(), area);
+            let response = crate::general::respond(ui, format!("pin {}", i), rects);
             let response = match self.mm {
                 MouseMode::NewPin => response,
                 MouseMode::NewText => response,
@@ -452,7 +465,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             pin: Some(pin),
                         });
                     } else {
-                        pin.draw(*self.zoom, zoom_origin, &pntr, pos);
+                        pin.draw(*self.zoom, zoom_origin, &pntr, pos, area);
                     }
                 }
             }

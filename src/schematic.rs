@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use egui_multiwin::egui;
+use egui_multiwin::egui::{self, Rect};
 
 use crate::{
     component::ComponentVariantReference, general::StoragePath, library::LibraryHolder,
@@ -729,49 +729,52 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 .color
                 .get_color32(crate::general::ColorMode::ScreenModeDark);
             let r = pntr.text(pos, align, t.text.clone(), font, color);
-            let id = egui::Id::new(1 + i);
-            let response = ui.interact(r.intersect(area), id, sense);
-            let response = match self.mm {
-                MouseMode::NewComponent => response,
-                MouseMode::NewText => response,
-                MouseMode::Selection => {
-                    if response.clicked() {
-                        println!("Clicked in selection mode");
-                        *self.selection = Some(SchematicSelection::Text {
-                            page: self.page,
-                            textnum: i,
-                        });
-                    }
-                    response.context_menu(|ui| {
-                        if ui.button("Properties").clicked() {
-                            ui.close_menu();
+            let r = r.intersect(area);
+            if r.is_positive() {
+                let id = egui::Id::new(1 + i);
+                let response = ui.interact(r.intersect(area), id, sense);
+                let response = match self.mm {
+                    MouseMode::NewComponent => response,
+                    MouseMode::NewText => response,
+                    MouseMode::Selection => {
+                        if response.clicked() {
+                            println!("Clicked in selection mode");
+                            *self.selection = Some(SchematicSelection::Text {
+                                page: self.page,
+                                textnum: i,
+                            });
                         }
-                    })
-                }
-                MouseMode::TextDrag => {
-                    if response.clicked() {
-                        println!("Clicked in drag mode");
+                        response.context_menu(|ui| {
+                            if ui.button("Properties").clicked() {
+                                ui.close_menu();
+                            }
+                        })
                     }
-                    if response.dragged() {
-                        let amount = response.drag_delta();
-                        let a = SchematicAction::MoveText {
-                            pagenum: self.page,
-                            textnum: i,
-                            delta: crate::general::Coordinates::from_pos2(
-                                amount.to_pos2(),
-                                *self.zoom,
-                            ),
-                        };
-                        actions.push(a);
-                    }
-                    response.context_menu(|ui| {
-                        if ui.button("Properties").clicked() {
-                            ui.close_menu();
+                    MouseMode::TextDrag => {
+                        if response.clicked() {
+                            println!("Clicked in drag mode");
                         }
-                    })
-                }
-            };
-            pr = pr.union(response);
+                        if response.dragged() {
+                            let amount = response.drag_delta();
+                            let a = SchematicAction::MoveText {
+                                pagenum: self.page,
+                                textnum: i,
+                                delta: crate::general::Coordinates::from_pos2(
+                                    amount.to_pos2(),
+                                    *self.zoom,
+                                ),
+                            };
+                            actions.push(a);
+                        }
+                        response.context_menu(|ui| {
+                            if ui.button("Properties").clicked() {
+                                ui.close_menu();
+                            }
+                        })
+                    }
+                };
+                pr = pr.union(response);
+            }
         }
 
         for a in actions {
@@ -800,9 +803,9 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                     if let Some(lib) = &lib.library {
                         if let Some(symbol) = lib.syms.get(&sym.sym) {
                             let pos = sch.pos.get_pos2(*self.zoom, origin) - zoom_origin.to_vec2();
-                            let rects = symbol.draw(*self.zoom, zoom_origin, &pntr, pos);
+                            let rects = symbol.draw(*self.zoom, zoom_origin, &pntr, pos, area);
                             let response =
-                                crate::general::respond(ui, format!("symbol{}", i), rects, area);
+                                crate::general::respond(ui, format!("symbol{}", i), rects);
                             let response = match &self.mm {
                                 MouseMode::Selection => {
                                     if response.clicked() {
@@ -847,7 +850,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                                 var: vr,
                             });
                         } else {
-                            symdef.draw(*self.zoom, zoom_origin, &pntr, pos2);
+                            symdef.draw(*self.zoom, zoom_origin, &pntr, pos2, area);
                         }
                     }
                 }

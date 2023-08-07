@@ -2,9 +2,9 @@
 
 use egui_multiwin::egui;
 /// interacts with ui elements (rectangles), combining them all into a single response
-pub fn respond(ui: &mut egui::Ui, id: String, rects: Vec<egui::Rect>, bounds: egui::Rect) -> egui::Response {
+pub fn respond(ui: &mut egui::Ui, id: String, rects: Vec<egui::Rect>) -> egui::Response {
     let mut resp = ui.interact(
-        rects[0].intersect(bounds),
+        rects[0],
         egui::Id::from(format!("{}.{}", id, 0)),
         egui::Sense {
             click: true,
@@ -15,7 +15,7 @@ pub fn respond(ui: &mut egui::Ui, id: String, rects: Vec<egui::Rect>, bounds: eg
     for (num, r) in rects.iter().skip(1).enumerate() {
         let num = num + 1;
         let resp2 = ui.interact(
-            r.intersect(bounds),
+            *r,
             egui::Id::from(format!("{}.{}", id, num)),
             egui::Sense {
                 click: true,
