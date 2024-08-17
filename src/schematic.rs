@@ -744,13 +744,12 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                                 textnum: i,
                             });
                         }
-                        response.context_menu(|ui| {
+                        let r = response.context_menu(|ui| {
                             if ui.button("Properties").clicked() {
                                 ui.close_menu();
                             }
                         });
-                        // TODO check this for correctness
-                        response
+                        r.map(|r|r.response).or(Some(response)).unwrap()
                     }
                     MouseMode::TextDrag => {
                         if response.clicked() {
@@ -768,13 +767,12 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                             };
                             actions.push(a);
                         }
-                        response.context_menu(|ui| {
+                        let r = response.context_menu(|ui| {
                             if ui.button("Properties").clicked() {
                                 ui.close_menu();
                             }
                         });
-                        // TODO check this for correctness
-                        response
+                        r.map(|r|r.response).or(Some(response)).unwrap()
                     }
                 };
                 pr = pr.union(response);
@@ -864,7 +862,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
             self.sch.schematic_log.apply(&mut self.sch.schematic, a);
         }
 
-        let pr = pr.context_menu(|ui| {
+        let ipr = pr.context_menu(|ui| {
             if ui.button("Do a thing").clicked() {
                 ui.close_menu();
             }
@@ -881,8 +879,7 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 focusable: true,
             },
         );
-        //pr.union(response)
-        //TODO fix this
-        response
+
+        pr
     }
 }

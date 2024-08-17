@@ -353,7 +353,6 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                                 ui.close_menu();
                             }
                         });
-                        //TODO check this for correctness
                         response
                     }
                     MouseMode::TextDrag => {
@@ -375,7 +374,6 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                                 ui.close_menu();
                             }
                         });
-                        //TODO check this for correctness
                         response
                     }
                 };
@@ -405,7 +403,6 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             ui.close_menu();
                         }
                     });
-                    // TODO check this for correctness
                     response
                 }
                 MouseMode::TextDrag => {
@@ -414,14 +411,13 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             ui.close_menu();
                         }
                     });
-                    //TODO check this for correctness
                     response
                 }
             };
             pr = pr.union(response);
         }
 
-        let pr = pr.context_menu(|ui| {
+        let ipr = pr.context_menu(|ui| {
             if ui.button("Do a thing").clicked() {
                 ui.close_menu();
             }
@@ -429,7 +425,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                 ui.close_menu();
             }
         });
-        if let Some(pr) = pr {
+        if let Some(pr) = ipr {
             let pos = ui.input(|i| i.pointer.interact_pos());
             if let Some(pos) = pos {
                 let pos2 = pos - zoom_origin.to_vec2();
@@ -483,9 +479,7 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
         }
 
         let (_area, response) = ui.allocate_exact_size(size, sense);
-        //pr.union(response)
-        //TODO fix this
-        response
+        pr.union(response)
     }
 }
 
