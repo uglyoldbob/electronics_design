@@ -9,3 +9,11 @@ pub enum IpcMessage {
     /// Create a new schematic window
     NewSchematic,
 }
+
+use egui_multiwin::winit::window::WindowId;
+
+impl IpcMessage {
+    pub fn window_id(&self) -> Option<WindowId> {
+        None
+    }
+}

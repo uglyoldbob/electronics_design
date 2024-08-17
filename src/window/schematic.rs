@@ -1,8 +1,8 @@
 //! The schematic window is used to view and manipulate an electronic schematic.
 
 use egui_multiwin::egui_glow::EguiGlow;
-use egui_multiwin::{
-    egui,
+use egui_multiwin::egui;
+use crate::egui_multiwin_dynamic::{
     multi_window::NewWindowRequest,
     tracked_window::{RedrawResponse, TrackedWindow},
 };
@@ -48,9 +48,9 @@ pub struct SchematicWindow {
 
 impl SchematicWindow {
     /// Create a new window
-    pub fn request() -> NewWindowRequest<MyApp> {
-        NewWindowRequest {
-            window_state: Box::new(Self {
+    pub fn request() -> NewWindowRequest {
+        NewWindowRequest::new(
+            super::Windows::Schematic(Self {
                 new_title: None,
                 selection: None,
                 message_channel: std::sync::mpsc::channel(),
@@ -61,22 +61,23 @@ impl SchematicWindow {
                 selected_component: None,
                 selected_variant: None,
             }),
-            builder: egui_multiwin::winit::window::WindowBuilder::new()
+            egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
                 .with_inner_size(egui_multiwin::winit::dpi::LogicalSize {
                     width: 800.0,
                     height: 600.0,
                 })
                 .with_title("egui-multiwin root window"),
-            options: egui_multiwin::tracked_window::TrackedWindowOptions {
+            egui_multiwin::tracked_window::TrackedWindowOptions {
                 vsync: false,
                 shader: None,
             },
-        }
+            egui_multiwin::multi_window::new_id(),
+        )
     }
 }
 
-impl TrackedWindow<MyApp> for SchematicWindow {
+impl TrackedWindow for SchematicWindow {
     fn is_root(&self) -> bool {
         true
     }
@@ -88,7 +89,8 @@ impl TrackedWindow<MyApp> for SchematicWindow {
         c: &mut MyApp,
         egui: &mut EguiGlow,
         _window: &egui_multiwin::winit::window::Window,
-    ) -> RedrawResponse<MyApp> {
+        _clipboard: &mut egui_multiwin::arboard::Clipboard,
+    ) -> RedrawResponse {
         let mut quit = false;
 
         let windows_to_create = vec![];
@@ -593,7 +595,7 @@ impl TrackedWindow<MyApp> for SchematicWindow {
                     //self.recenter = true;
                 }
                 if resp.hovered() {
-                    let scroll = ui.input(|i| i.scroll_delta);
+                    let scroll = ui.input(|i| i.smooth_scroll_delta);
                     if scroll.y.abs() > f32::EPSILON {
                         self.zoom *= f32::powf(1.0025, scroll.y);
                     }

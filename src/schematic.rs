@@ -748,7 +748,9 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                             if ui.button("Properties").clicked() {
                                 ui.close_menu();
                             }
-                        })
+                        });
+                        // TODO check this for correctness
+                        response
                     }
                     MouseMode::TextDrag => {
                         if response.clicked() {
@@ -770,7 +772,9 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                             if ui.button("Properties").clicked() {
                                 ui.close_menu();
                             }
-                        })
+                        });
+                        // TODO check this for correctness
+                        response
                     }
                 };
                 pr = pr.union(response);
@@ -877,6 +881,8 @@ impl<'a> egui::Widget for SchematicWidget<'a> {
                 focusable: true,
             },
         );
-        pr.union(response)
+        //pr.union(response)
+        //TODO fix this
+        response
     }
 }

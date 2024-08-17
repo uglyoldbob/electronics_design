@@ -1,8 +1,8 @@
 //! This window asks the user for a name of the new library
 
 use egui_multiwin::egui_glow::EguiGlow;
-use egui_multiwin::{
-    egui,
+use egui_multiwin::egui;
+use crate::egui_multiwin_dynamic::{
     multi_window::NewWindowRequest,
     tracked_window::{RedrawResponse, TrackedWindow},
 };
@@ -31,29 +31,30 @@ pub struct LibraryName {
 
 impl LibraryName {
     /// Create a new window
-    pub fn request() -> NewWindowRequest<MyApp> {
-        NewWindowRequest {
-            window_state: Box::new(Self {
+    pub fn request() -> NewWindowRequest {
+        NewWindowRequest::new(
+            super::Windows::LibraryName(Self {
                 name: "".to_string(),
                 selected_path: crate::general::StoragePath::default(),
                 message_channel: std::sync::mpsc::channel(),
             }),
-            builder: egui_multiwin::winit::window::WindowBuilder::new()
+            egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
                 .with_inner_size(egui_multiwin::winit::dpi::LogicalSize {
                     width: 320.0,
                     height: 240.0,
                 })
                 .with_title("New Library"),
-            options: egui_multiwin::tracked_window::TrackedWindowOptions {
+            egui_multiwin::tracked_window::TrackedWindowOptions {
                 vsync: false,
                 shader: None,
             },
-        }
+            egui_multiwin::multi_window::new_id(),
+        )
     }
 }
 
-impl TrackedWindow<MyApp> for LibraryName {
+impl TrackedWindow for LibraryName {
     fn is_root(&self) -> bool {
         false
     }
@@ -65,7 +66,8 @@ impl TrackedWindow<MyApp> for LibraryName {
         c: &mut MyApp,
         egui: &mut EguiGlow,
         _window: &egui_multiwin::winit::window::Window,
-    ) -> RedrawResponse<MyApp> {
+        _clipboard: &mut egui_multiwin::arboard::Clipboard,
+    ) -> RedrawResponse {
         let mut quit = false;
 
         let windows_to_create = vec![];

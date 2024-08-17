@@ -2,8 +2,8 @@
 
 use egui_multiwin::egui::Sense;
 use egui_multiwin::egui_glow::EguiGlow;
-use egui_multiwin::{
-    egui,
+use egui_multiwin::egui;
+use crate::egui_multiwin_dynamic::{
     multi_window::NewWindowRequest,
     tracked_window::{RedrawResponse, TrackedWindow},
 };
@@ -51,9 +51,9 @@ pub struct Library {
 
 impl Library {
     /// Create a new window
-    pub fn request() -> NewWindowRequest<MyApp> {
-        NewWindowRequest {
-            window_state: Box::new(Self {
+    pub fn request() -> NewWindowRequest {
+        NewWindowRequest::new(
+            super::Windows::Library(Self {
                 selected_library: None,
                 selected_thing: None,
                 selected_variant: None,
@@ -66,22 +66,23 @@ impl Library {
                 zoom: 115.0,
                 pin_angle: 0.0,
             }),
-            builder: egui_multiwin::winit::window::WindowBuilder::new()
+            egui_multiwin::winit::window::WindowBuilder::new()
                 .with_resizable(true)
                 .with_inner_size(egui_multiwin::winit::dpi::LogicalSize {
                     width: 800.0,
                     height: 600.0,
                 })
                 .with_title(format!("{} Library Editor", crate::PACKAGE_NAME)),
-            options: egui_multiwin::tracked_window::TrackedWindowOptions {
+            egui_multiwin::tracked_window::TrackedWindowOptions {
                 vsync: false,
                 shader: None,
             },
-        }
+            egui_multiwin::multi_window::new_id(),
+        )
     }
 }
 
-impl TrackedWindow<MyApp> for Library {
+impl TrackedWindow for Library {
     fn is_root(&self) -> bool {
         true
     }
@@ -93,7 +94,8 @@ impl TrackedWindow<MyApp> for Library {
         c: &mut MyApp,
         egui: &mut EguiGlow,
         window: &egui_multiwin::winit::window::Window,
-    ) -> RedrawResponse<MyApp> {
+        _clipboard: &mut egui_multiwin::arboard::Clipboard,
+    ) -> RedrawResponse {
         let mut quit = false;
 
         let mut windows_to_create = vec![];
@@ -182,7 +184,7 @@ impl TrackedWindow<MyApp> for Library {
                     mac_cmd: false,
                     command: false,
                 },
-                key: egui::Key::Z,
+                logical_key: egui::Key::Z,
             })
         });
         if input && c.library_log.can_undo() {
@@ -197,7 +199,7 @@ impl TrackedWindow<MyApp> for Library {
                     mac_cmd: false,
                     command: false,
                 },
-                key: egui::Key::Y,
+                logical_key: egui::Key::Y,
             })
         });
         if input && c.library_log.can_redo() {
@@ -554,7 +556,7 @@ impl TrackedWindow<MyApp> for Library {
                                             self.recenter = true;
                                         }
                                         if resp.hovered() {
-                                            let scroll = ui.input(|i| i.scroll_delta);
+                                            let scroll = ui.input(|i| i.smooth_scroll_delta);
                                             if scroll.y.abs() > f32::EPSILON {
                                                 self.zoom *= f32::powf(1.0025, scroll.y);
                                             }

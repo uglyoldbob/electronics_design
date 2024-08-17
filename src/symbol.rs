@@ -352,7 +352,9 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             if ui.button("Properties").clicked() {
                                 ui.close_menu();
                             }
-                        })
+                        });
+                        //TODO check this for correctness
+                        response
                     }
                     MouseMode::TextDrag => {
                         if response.dragged_by(egui::PointerButton::Primary) {
@@ -372,7 +374,9 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                             if ui.button("Properties").clicked() {
                                 ui.close_menu();
                             }
-                        })
+                        });
+                        //TODO check this for correctness
+                        response
                     }
                 };
                 pr = pr.union(response);
@@ -400,13 +404,19 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                         if ui.button("Properties").clicked() {
                             ui.close_menu();
                         }
-                    })
+                    });
+                    // TODO check this for correctness
+                    response
                 }
-                MouseMode::TextDrag => response.context_menu(|ui| {
-                    if ui.button("Properties").clicked() {
-                        ui.close_menu();
-                    }
-                }),
+                MouseMode::TextDrag => {
+                    response.context_menu(|ui| {
+                        if ui.button("Properties").clicked() {
+                            ui.close_menu();
+                        }
+                    });
+                    //TODO check this for correctness
+                    response
+                }
             };
             pr = pr.union(response);
         }
@@ -419,60 +429,63 @@ impl<'a> egui::Widget for SymbolDefinitionWidget<'a> {
                 ui.close_menu();
             }
         });
-
-        let pos = ui.input(|i| i.pointer.interact_pos());
-        if let Some(pos) = pos {
-            let pos2 = pos - zoom_origin.to_vec2();
-            match self.mm {
-                MouseMode::Selection => {}
-                MouseMode::TextDrag => {}
-                MouseMode::NewText => {
-                    if pr.clicked() {
-                        self.actions.push(LibraryAction::CreateText {
-                            libname: self.sym.libname.clone(),
-                            symname: self.sym.sym.name.clone(),
-                            text: TextOnPage {
-                                text: "New text".to_string(),
-                                location: crate::general::Coordinates::from_pos2(pos2, *self.zoom),
-                                color: crate::schematic::Colors::Standard,
-                                size: crate::general::Length::Inches(0.2),
-                            },
-                        });
-                    } else {
-                        pntr.text(
-                            pos,
-                            egui::Align2::LEFT_BOTTOM,
-                            "New text".to_string(),
-                            egui::FontId {
-                                size: crate::general::Length::Inches(0.2)
-                                    .get_screen(*self.zoom, zoom_origin),
-                                family: egui::FontFamily::Monospace,
-                            },
-                            crate::schematic::Colors::Standard
-                                .get_color32(crate::general::ColorMode::ScreenModeDark),
-                        );
+        if let Some(pr) = pr {
+            let pos = ui.input(|i| i.pointer.interact_pos());
+            if let Some(pos) = pos {
+                let pos2 = pos - zoom_origin.to_vec2();
+                match self.mm {
+                    MouseMode::Selection => {}
+                    MouseMode::TextDrag => {}
+                    MouseMode::NewText => {
+                        if pr.response.clicked() {
+                            self.actions.push(LibraryAction::CreateText {
+                                libname: self.sym.libname.clone(),
+                                symname: self.sym.sym.name.clone(),
+                                text: TextOnPage {
+                                    text: "New text".to_string(),
+                                    location: crate::general::Coordinates::from_pos2(pos2, *self.zoom),
+                                    color: crate::schematic::Colors::Standard,
+                                    size: crate::general::Length::Inches(0.2),
+                                },
+                            });
+                        } else {
+                            pntr.text(
+                                pos,
+                                egui::Align2::LEFT_BOTTOM,
+                                "New text".to_string(),
+                                egui::FontId {
+                                    size: crate::general::Length::Inches(0.2)
+                                        .get_screen(*self.zoom, zoom_origin),
+                                    family: egui::FontFamily::Monospace,
+                                },
+                                crate::schematic::Colors::Standard
+                                    .get_color32(crate::general::ColorMode::ScreenModeDark),
+                            );
+                        }
                     }
-                }
-                MouseMode::NewPin => {
-                    let pin = crate::symbol::Pin {
-                        location: crate::general::Coordinates::from_pos2(pos2, *self.zoom),
-                        rotation: *self.pin_angle,
-                    };
-                    if pr.clicked() {
-                        self.actions.push(LibraryAction::CreatePin {
-                            libname: self.sym.libname.clone(),
-                            symname: self.sym.sym.name.clone(),
-                            pin: Some(pin),
-                        });
-                    } else {
-                        pin.draw(*self.zoom, zoom_origin, &pntr, pos, area);
+                    MouseMode::NewPin => {
+                        let pin = crate::symbol::Pin {
+                            location: crate::general::Coordinates::from_pos2(pos2, *self.zoom),
+                            rotation: *self.pin_angle,
+                        };
+                        if pr.response.clicked() {
+                            self.actions.push(LibraryAction::CreatePin {
+                                libname: self.sym.libname.clone(),
+                                symname: self.sym.sym.name.clone(),
+                                pin: Some(pin),
+                            });
+                        } else {
+                            pin.draw(*self.zoom, zoom_origin, &pntr, pos, area);
+                        }
                     }
                 }
             }
         }
 
         let (_area, response) = ui.allocate_exact_size(size, sense);
-        pr.union(response)
+        //pr.union(response)
+        //TODO fix this
+        response
     }
 }
 

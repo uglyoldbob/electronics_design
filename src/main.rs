@@ -22,10 +22,21 @@ mod symbol;
 
 use std::collections::HashMap;
 
-use egui_multiwin::{
-    multi_window::{MultiWindow, NewWindowRequest},
-    winit::event_loop::EventLoopBuilder,
-};
+/// Macro generated code
+pub mod egui_multiwin_dynamic {
+    egui_multiwin::tracked_window!(
+        crate::MyApp,
+        crate::ipc::IpcMessage,
+        crate::window::Windows
+    );
+    egui_multiwin::multi_window!(
+        crate::MyApp,
+        crate::ipc::IpcMessage,
+        crate::window::Windows
+    );
+}
+
+use egui_multiwin_dynamic::multi_window::{MultiWindow, NewWindowRequest};
 
 use crate::schematic::SchematicHolder;
 
@@ -68,11 +79,10 @@ fn main() {
         return;
     }
 
-    let mut event_loop: EventLoopBuilder<ipc::IpcMessage> =
-        egui_multiwin::winit::event_loop::EventLoopBuilder::with_user_event();
+    let mut event_loop = egui_multiwin::winit::event_loop::EventLoopBuilder::with_user_event();
     #[cfg(target_os = "linux")]
     egui_multiwin::winit::platform::x11::EventLoopBuilderExtX11::with_x11(&mut event_loop);
-    let event_loop = event_loop.build();
+    let event_loop = event_loop.build().unwrap();
     let proxy = event_loop.create_proxy();
 
     std::thread::spawn(move || {
@@ -104,8 +114,7 @@ fn main() {
         }
     });
 
-    let mut multi_window: MultiWindow<MyApp, ipc::IpcMessage> =
-        egui_multiwin::multi_window::MultiWindow::new();
+    let mut multi_window = MultiWindow::new();
     let mut fd = egui_multiwin::egui::FontData::from_static(COMPUTER_MODERN_FONT);
     fd.tweak.y_offset_factor = 1.0 / 3.0;
     multi_window.add_font("computermodern".to_string(), fd);
@@ -120,17 +129,17 @@ fn main() {
         match ac.args[1].as_str() {
             "schematic" => {
                 let _e =
-                    multi_window.add(window::schematic::SchematicWindow::request(), &event_loop);
+                    multi_window.add(window::schematic::SchematicWindow::request(), &mut ac, &event_loop);
             }
             "library" => {
-                let _e = multi_window.add(window::library::Library::request(), &event_loop);
+                let _e = multi_window.add(window::library::Library::request(), &mut ac, &event_loop);
             }
             _ => {
-                let _e = multi_window.add(window::library::Library::request(), &event_loop);
+                let _e = multi_window.add(window::library::Library::request(), &mut ac, &event_loop);
             }
         }
     } else {
-        let _e = multi_window.add(window::schematic::SchematicWindow::request(), &event_loop);
+        let _e = multi_window.add(window::schematic::SchematicWindow::request(), &mut ac, &event_loop);
     }
     multi_window.run(event_loop, ac);
 }
@@ -151,8 +160,8 @@ pub struct MyApp {
     units: general::DisplayMode,
 }
 
-impl egui_multiwin::multi_window::CommonEventHandler<MyApp, ipc::IpcMessage> for MyApp {
-    fn process_event(&mut self, event: ipc::IpcMessage) -> Vec<NewWindowRequest<MyApp>> {
+impl MyApp {
+    fn process_event(&mut self, event: ipc::IpcMessage) -> Vec<NewWindowRequest> {
         let mut windows_to_create = vec![];
         match event {
             ipc::IpcMessage::NewSchematic => {
